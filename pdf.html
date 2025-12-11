@@ -1,0 +1,624 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Free PDF Stamp & Sign – CopOnline.my</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/assets/css/styles.css" /> <!-- Global site CSS -->
+  <style>
+    body { font-family: system-ui,sans-serif; margin:0; background:#f3f4f6; color:#111827; }
+    h1.page-title { text-align:center; font-size:28px; font-weight:700; margin:32px 0 16px; }
+    .main { display:grid; grid-template-columns: 1fr 340px; gap:1.5rem; padding:1.5rem; max-width:1400px; margin:auto; }
+    @media (max-width:768px){.main{grid-template-columns:1fr;} .sidebar{position:static!important;} }
+    .card{ background:#fff; padding:1.25rem; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
+    .pdf-container{ display:flex; flex-direction:column; align-items:center;}
+    .page-wrap{ position:relative; margin:1rem 0; box-shadow:0 2px 6px rgba(0,0,0,.1); background:#fff; border-radius:8px;}
+    canvas{ display:block; }
+    .page-footer{ text-align:center; font-size:12px; color:#6b7280; margin-top:4px;}
+    .overlay{ position:absolute; cursor:move; display:inline-block;}
+    .overlay img{ width:120px; height:auto;}
+    .resize-handle{ position:absolute;width:12px;height:12px;background:#2563eb;border:2px solid #fff;bottom:-6px;right:-6px;cursor:se-resize;}
+    .remove-btn{ position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:14px;line-height:18px;cursor:pointer;}
+    #signPad{ border:1px solid #ccc;background:#fff;border-radius:8px;width:100%;max-width:300px;}
+    .btn{ padding:.65rem 1.25rem;border-radius:9999px;cursor:pointer;border:none;font-size:.9rem;transition:background .2s, box-shadow .2s;}
+    .btn-primary{ background:#6366f1;color:#fff;font-weight:500;}
+    .btn-primary:hover{ background:#4f46e5; box-shadow:0 2px 6px rgba(79,70,229,0.4);}
+    .btn-outline{ background:#fff;border:1px solid #d1d5db;color:#374151;font-weight:500;}
+    .btn-outline:hover{ background:#f9fafb;}
+    .sidebar{ position:sticky; top:6rem; height:fit-content;}
+    .sidebar h3{ margin-top:0; margin-bottom:1rem; }
+    .btn-group{ display:flex; gap:.75rem; flex-wrap:wrap; margin-top:1rem; }
+    .active-page { outline:2px solid #6366f1; }
+    small.note { display:block; margin-top:.5rem; font-size:12px; color:#6b7280; }
+    /* Font */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+:root {
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --radius: 12px;
+  --shadow: 0 24px 48px -8px rgba(31, 45, 61, 0.07);
+  --text: #1f2d3d;
+  --muted: #6b7280;
+  --border: #e8eaee;
+  --brand: #6366f1;
+  --brand-gradient: linear-gradient(90deg, #6366f1 0%, #a78bfa 100%);
+  --transition: .2s ease;
+  font-family: "Inter", system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
+/* HEADER */
+.header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 14px rgba(31, 45, 61, 0.04);
+}
+
+.header-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  height: 72px;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* LOGO */
+.logo {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  text-decoration:none;
+  color:var(--text);
+  font-weight:600;
+  font-size:1.125rem;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+
+.tagline {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+/* NAV */
+.nav {
+  display:flex;
+  gap:1.25rem;
+  align-items:center;
+  margin-left:auto;
+  flex-wrap:wrap;
+  position:relative;
+  font-size:0.9rem;
+}
+
+.nav a {
+  position:relative;
+  text-decoration:none;
+  color:#374151;
+  font-weight:500;
+  padding:6px 4px;
+  transition: color .2s ease;
+}
+
+.nav a:hover {
+  color: var(--brand);
+}
+
+.nav a.active {
+  color: var(--brand);
+  font-weight:600;
+}
+
+.nav a.active::after {
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:-4px;
+  width:100%;
+  height:3px;
+  border-radius:2px;
+  background: var(--brand-gradient);
+}
+
+.divider {
+  width:1px;
+  height:28px;
+  background:#d1d5db;
+  margin:0 12px;
+}
+
+/* BUTTONS in navbar */
+.btn,
+.button {
+  cursor:pointer;
+  border:none;
+  border-radius:999px;
+  padding:10px 18px;
+  font-weight:600;
+  font-size:0.85rem;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:all var(--transition);
+  outline:none;
+}
+
+.btn-outline {
+  background:#fff;
+  border:1px solid var(--border);
+  color:#374151;
+}
+
+.btn-outline:hover {
+  background:#f9f9fb;
+  box-shadow:0 8px 24px rgba(31, 45, 61, 0.04);
+}
+
+/* HEADER RIGHT */
+.header-right {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-left:auto;
+}
+
+/* Hamburger */
+.hamburger {
+  background:none;
+  border:none;
+  font-size:1.5rem;
+  cursor:pointer;
+  padding:8px;
+  line-height:1;
+  display:none;
+}
+
+/* MOBILE NAV MENU */
+.mobile-nav {
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  width:100%;
+  padding-top:8px;
+}
+
+/* Mobile nav links */
+.mobile-nav a {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #111827;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  display: block;
+  padding: 10px 0;
+}
+
+.mobile-nav a:hover {
+  color: var(--brand);
+}
+
+.mobile-nav a.active {
+  color: var(--brand);
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .header-inner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 1rem;
+  }
+
+  .nav,
+  .divider {
+    display:none;
+  }
+
+  .hamburger {
+    display:inline-flex;
+  }
+
+  .mobile-nav {
+    display:flex;
+  }
+
+  .desktop-only { display:none; }
+  .mobile-only { display:inline-flex; }
+}
+
+@media (min-width: 641px) {
+  .hamburger { display:none; }
+  .mobile-nav { display:none !important; }
+  .desktop-only { display:flex; }
+  .mobile-only { display:none; }
+}
+
+  </style>
+</head>
+<body>
+
+<header class="header" style="position:relative;">
+  <div class="header-inner">
+    <!-- Left: Logo -->
+    <a class="logo" href="index.html" style="display:flex;align-items:center;gap:8px;">
+      <img src="amm.png" alt="CopOnline Logo" style="width:50px;height:50px;" />
+      <div style="display:flex;flex-direction:column;line-height:1.3">
+        <div>WebCop.my</div>
+        <div class="tagline">Digital Company Cop</div>
+      </div>
+    </a>
+
+    <!-- Right -->
+    <div class="header-right">
+      <nav class="nav desktop-only">
+        <a href="pricing.html" class="">Pricing</a>
+        <a href="faq.html"     class="">FAQ</a>
+        <a href="contact.html" class="">Contact</a>
+
+        <!-- New Free Stamp Tool Link -->
+        <a href="pdf.html" class="active" 
+           style="color:#2563eb;font-weight:600;">Free PDF Stamp + Sign</a>
+
+        <!-- Mega Pack Link -->
+        <a href="editor.html" class="" 
+           style="color:#b91c1c;font-weight:600;">PDF Editor</a>
+      </nav>
+
+      <div class="divider desktop-only"></div>
+
+      <!-- Language Toggle -->
+      <a href="/free-stamp/index.php?lang=ms"
+         class="btn btn-outline"
+         style="background:#eef2ff;border:1px solid #c7d2fe;color:#4f46e5;">
+        BM      </a>
+
+      <!-- Hamburger (Mobile) -->
+      <button id="hamburger" class="hamburger mobile-only" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <!-- Mobile dropdown -->
+    <div id="mobile-menu" class="mobile-nav" style="display:none;">
+      <a href="pricing.html" class="">Pricing</a>
+      <a href="faq.html"     class="">FAQ</a>
+      <a href="contact.html" class="">Contact</a>
+
+      <!-- New Free Stamp Tool Link (mobile) -->
+      <a href="pdf.html" class="active" 
+         style="color:#2563eb;font-weight:600;">Free Stamp + Sign</a>
+
+      <!-- Mega Pack Link in mobile -->
+      <a href="editor.html" class="" 
+         style="color:#b91c1c;font-weight:600;">Mega Sticker Pack Promo</a>
+    </div>
+  </div>
+</header>
+
+<h1 class="page-title">Free PDF Stamp & Signature Tool</h1>
+
+<div class="main">
+  <div class="card">
+    <h3>PDF Preview</h3>
+    <div class="pdf-container" id="pdf-container"></div>
+  </div>
+
+  <div class="card sidebar">
+    <h3>Controls</h3>
+    <label><strong>Upload PDF:</strong></label>
+    <input type="file" id="fileInput" accept="application/pdf" /><br><br>
+
+    <label><strong>Upload Stamp:</strong></label>
+    <input type="file" id="stampInput" accept="image/*" /><br>
+
+    <small class="note" style="display:block;margin-top:6px;color:#374151;">
+      Don’t have a stamp yet?  
+      <a href="/index.php" style="color:#4f46e5;font-weight:600;text-decoration:none;">
+        Create one here →
+      </a>
+    </small>
+    <br>
+
+    <h4>Signature Pad</h4>
+    <canvas id="signPad" height="150"></canvas><br>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="clearSig()">Clear</button>
+      <button class="btn btn-primary" onclick="useSig()">Add Signature</button>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
+    </div>
+    <small class="note">Your stamp/signature will be added to the active page (highlighted in blue).</small>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+<script>
+let pdfDoc = null,
+    scale = 1.2,
+    originalPdfBytes = null,
+    originalFileName = null; // track original filename
+
+let overlays = []; // {el,src,page,file}
+let activePage = null;
+
+// Upload & render PDF
+document.getElementById('fileInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if (!file) return;
+
+  originalFileName = file.name; // save uploaded file name
+
+  const fr = new FileReader();
+  fr.onload = function(){
+    originalPdfBytes = this.result;
+    const data = new Uint8Array(this.result);
+    pdfjsLib.getDocument({data}).promise.then(doc=>{
+      pdfDoc = doc;
+      renderAllPages();
+    });
+  };
+  fr.readAsArrayBuffer(file);
+});
+
+function renderAllPages(){
+  const container = document.getElementById('pdf-container');
+  container.innerHTML="";
+  for(let i=1;i<=pdfDoc.numPages;i++){
+    pdfDoc.getPage(i).then(page=>{
+      const viewport = page.getViewport({scale});
+      const wrapper = document.createElement('div');
+      wrapper.className="page-wrap";
+      wrapper.dataset.page=i;
+
+      const canvas = document.createElement('canvas');
+      canvas.width=viewport.width; canvas.height=viewport.height;
+      wrapper.appendChild(canvas);
+
+      const overlayCont=document.createElement('div');
+      overlayCont.className="overlay-container";
+      overlayCont.style.position="absolute";
+      overlayCont.style.top="0"; overlayCont.style.left="0";
+      overlayCont.style.width=canvas.width+"px";
+      overlayCont.style.height=canvas.height+"px";
+      wrapper.appendChild(overlayCont);
+
+      const footer=document.createElement('div');
+      footer.className="page-footer";
+      footer.innerText=`Page ${i} / ${pdfDoc.numPages}`;
+      wrapper.appendChild(footer);
+
+      container.appendChild(wrapper);
+      page.render({canvasContext:canvas.getContext('2d'), viewport:viewport});
+
+      if(i===1) setActivePage(wrapper);
+    });
+  }
+}
+
+// Track active page
+window.addEventListener('scroll', ()=>{
+  const pages=document.querySelectorAll('.page-wrap');
+  let closest=null, minDist=Infinity;
+  pages.forEach(p=>{
+    const rect=p.getBoundingClientRect();
+    const dist=Math.abs(rect.top+rect.height/2-window.innerHeight/2);
+    if(dist<minDist){minDist=dist; closest=p;}
+  });
+  if(closest) setActivePage(closest);
+});
+
+function setActivePage(page){
+  if(activePage) activePage.classList.remove('active-page');
+  activePage=page;
+  activePage.classList.add('active-page');
+}
+
+// Overlays
+function addOverlay(src, wrapper, file=null){
+  const overlayCont=wrapper.querySelector('.overlay-container');
+  const pageNum=parseInt(wrapper.dataset.page);
+
+  const div=document.createElement('div');
+  div.className='overlay';
+  div.style.top='60px'; div.style.left='60px';
+
+  const img=document.createElement('img'); img.src=src;
+  div.appendChild(img);
+
+  const remove=document.createElement('button');
+  remove.className='remove-btn'; remove.innerHTML='×';
+  remove.onclick=()=>{
+    div.remove();
+    overlays = overlays.filter(o=>o.el!==div);
+  };
+  div.appendChild(remove);
+
+  const handle=document.createElement('div');
+  handle.className='resize-handle'; div.appendChild(handle);
+
+  overlayCont.appendChild(div);
+  makeDraggable(div); makeResizable(div,img,handle);
+
+  overlays.push({el:div,src:src,page:pageNum,file:file});
+}
+
+// Stamp upload
+document.getElementById('stampInput').addEventListener('change', e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const url=URL.createObjectURL(file);
+  const page=activePage || document.querySelector('.page-wrap');
+  if(page) addOverlay(url,page,file);
+  else alert("Upload a PDF first.");
+});
+
+// Signature pad
+const sigPad=new SignaturePad(document.getElementById('signPad'));
+function clearSig(){sigPad.clear();}
+function useSig(){
+  if(sigPad.isEmpty()) return alert("Please sign first");
+  const page=activePage || document.querySelector('.page-wrap');
+  if(!page) return alert("Upload a PDF first!");
+  const sig=sigPad.toDataURL("image/png");
+  addOverlay(sig,page);
+}
+
+// Drag & resize (mouse + touch support)
+function makeDraggable(el) {
+  let isDown = false, startX, startY, origX, origY;
+
+  function start(e) {
+    if (e.target.classList.contains('resize-handle') || e.target.classList.contains('remove-btn')) return;
+    isDown = true;
+    const point = e.touches ? e.touches[0] : e;
+    startX = point.clientX;
+    startY = point.clientY;
+    origX = parseInt(el.style.left) || 0;
+    origY = parseInt(el.style.top) || 0;
+    e.preventDefault();
+  }
+
+  function move(e) {
+    if (!isDown) return;
+    const point = e.touches ? e.touches[0] : e;
+    el.style.left = (origX + (point.clientX - startX)) + 'px';
+    el.style.top = (origY + (point.clientY - startY)) + 'px';
+  }
+
+  function end() {
+    isDown = false;
+  }
+
+  // Mouse
+  el.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+
+  // Touch
+  el.addEventListener('touchstart', start, { passive: false });
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', end);
+}
+
+function makeResizable(el, img, handle) {
+  let resizing = false, startX, startW;
+
+  function start(e) {
+    resizing = true;
+    const point = e.touches ? e.touches[0] : e;
+    startX = point.clientX;
+    startW = img.offsetWidth;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function move(e) {
+    if (!resizing) return;
+    const point = e.touches ? e.touches[0] : e;
+    let newW = startW + (point.clientX - startX);
+    if (newW > 30) {
+      img.style.width = newW + "px";
+      img.style.height = "auto";
+    }
+  }
+
+  function end() {
+    resizing = false;
+  }
+
+  // Mouse
+  handle.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+
+  // Touch
+  handle.addEventListener('touchstart', start, { passive: false });
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', end);
+}
+
+
+// Helper: base64 decode
+function base64ToUint8Array(base64){
+  const raw=atob(base64.split(',')[1]);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+
+// Download PDF
+async function downloadPDF(){
+  if(!originalPdfBytes) return alert("Upload a PDF first!");
+  const pdf=await PDFLib.PDFDocument.load(originalPdfBytes);
+  const pages=pdf.getPages();
+
+  for(const o of overlays){
+    const page=pages[o.page-1];
+    let imgBytes,img;
+
+    if(o.src.startsWith("data:image/")){
+      imgBytes=base64ToUint8Array(o.src);
+      img=await pdf.embedPng(imgBytes);
+    } else if(o.file){
+      imgBytes=await o.file.arrayBuffer();
+      if(o.file.type.includes("png")) img=await pdf.embedPng(imgBytes);
+      else img=await pdf.embedJpg(imgBytes);
+    } else {
+      imgBytes=await fetch(o.src).then(r=>r.arrayBuffer());
+      if(o.src.includes("png")) img=await pdf.embedPng(imgBytes);
+      else img=await pdf.embedJpg(imgBytes);
+    }
+
+    const wrapper=document.querySelector(`.page-wrap[data-page='${o.page}']`);
+    const canvas=wrapper.querySelector("canvas");
+    const {width,height}=page.getSize();
+    const scaleX=width/canvas.width, scaleY=height/canvas.height;
+    const offsetLeft=parseFloat(o.el.style.left)||0;
+    const offsetTop=parseFloat(o.el.style.top)||0;
+
+    const w=o.el.offsetWidth*scaleX;
+    const h=o.el.offsetHeight*scaleY;
+    const x=offsetLeft*scaleX;
+    const y=height-(offsetTop*scaleY)-h;
+
+    page.drawImage(img,{x,y,width:w,height:h});
+  }
+
+  const out=await pdf.save();
+  const blob=new Blob([out],{type:"application/pdf"});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+
+  // Build download name
+  if(originalFileName){
+    let name=originalFileName.split('/').pop().split('\\').pop();
+    const lastDot=name.lastIndexOf('.');
+    let base=lastDot!==-1 ? name.substring(0,lastDot) : name;
+    let ext=lastDot!==-1 ? name.substring(lastDot) : '.pdf';
+    base=base.replace(/[^\w\-\.]+/g,'_');
+    a.download=`${base}_CopOnlineMY${ext}`;
+  } else {
+    a.download="stamped_CopOnlineMY.pdf";
+  }
+
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+}
+</script>
+<script src="/assets/js/app.js"></script>
+</body>
+</html>

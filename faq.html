@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navigation Bar</title>
+
+</head>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+    :root {
+      --bg: #f5f7fa;
+      --card-bg: #ffffff;
+      --text: #1f2d3d;
+      --muted: #6b7280;
+      --border: #e8eaee;
+      --brand: #6366f1;
+      --brand-gradient: linear-gradient(90deg, #6366f1 0%, #a78bfa 100%);
+      --transition: .2s ease;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { 
+      box-sizing: border-box; 
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* HEADER */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 14px rgba(31, 45, 61, 0.04);
+    }
+
+    .header-inner {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      height: 72px;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Logo */
+    .logo { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      text-decoration: none; 
+      color: var(--text); 
+      font-weight: 600; 
+      font-size: 1.125rem; 
+      flex-shrink: 0; 
+      white-space: nowrap; 
+    }
+
+    .logo .mark {
+      width: 36px; 
+      height: 36px; 
+      background: var(--brand-gradient); 
+      border-radius: 8px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: #fff; 
+      font-weight: 700; 
+      font-size: 1rem;
+    }
+
+    .tagline { 
+      font-size: 0.65rem; 
+      color: var(--muted); 
+      margin-left: 4px; 
+    }
+
+    /* NAV */
+    .nav { 
+      display: flex; 
+      gap: 1.25rem; 
+      align-items: center; 
+      margin-left: auto; 
+      flex-wrap: wrap; 
+      position: relative; 
+      font-size: 0.9rem; 
+    }
+
+    .nav a { 
+      position: relative; 
+      text-decoration: none; 
+      color: #374151; 
+      font-weight: 500; 
+      padding: 6px 4px; 
+      transition: color .2s ease; 
+    }
+
+    .nav a:hover { 
+      color: var(--brand); 
+    }
+
+    .nav a.active { 
+      color: var(--brand); 
+      font-weight: 600; 
+    }
+
+    .nav a.active::after { 
+      content: ""; 
+      position: absolute; 
+      left: 0; 
+      bottom: -4px; 
+      width: 100%; 
+      height: 3px; 
+      border-radius: 2px; 
+      background: var(--brand-gradient); 
+    }
+
+    .divider { 
+      width: 1px; 
+      height: 28px; 
+      background: #d1d5db; 
+      margin: 0 12px; 
+    }
+
+    /* BUTTONS */
+    .btn { 
+      cursor: pointer; 
+      border: none; 
+      border-radius: 999px; 
+      padding: 10px 18px; 
+      font-weight: 600; 
+      font-size: 0.85rem; 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 6px; 
+      transition: all var(--transition); 
+      outline: none;
+      text-decoration: none;
+    }
+
+    .btn-outline { 
+      background: #fff; 
+      border: 1px solid var(--border); 
+      color: #374151; 
+    }
+
+    .btn-outline:hover { 
+      background: #f9f9fb; 
+      box-shadow: 0 8px 24px rgba(31, 45, 61, 0.04); 
+    }
+
+    .header-right { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      margin-left: auto; 
+    }
+
+    .hamburger { 
+      background: none; 
+      border: none; 
+      font-size: 1.5rem; 
+      cursor: pointer; 
+      padding: 8px; 
+      line-height: 1; 
+    }
+
+    .mobile-nav { 
+      display: none; 
+    }
+
+    .desktop-only { 
+      display: flex; 
+    }
+
+    .mobile-only { 
+      display: none; 
+    }
+
+    /* Mobile dropdown links */
+    .mobile-nav a:link,
+    .mobile-nav a:visited {
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #111827;
+      text-decoration: none;
+      letter-spacing: 0.2px;
+      display: block;
+      padding: 10px 0;
+    }
+
+    .mobile-nav a.active {
+      color: var(--brand);
+    }
+
+    .mobile-nav a:hover {
+      color: var(--brand);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 640px) {
+      .header-inner { 
+        flex-direction: row; 
+        flex-wrap: wrap; 
+        justify-content: space-between; 
+        align-items: center; 
+        gap: 8px; 
+        padding: 16px 1rem; 
+      }
+
+      .header-right { 
+        display: flex; 
+        gap: 8px; 
+        align-items: center; 
+      }
+
+      .mobile-nav { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+        width: 100%; 
+        padding-top: 8px; 
+      }
+
+      .nav, .divider { 
+        display: none; 
+      }
+
+      .desktop-only { 
+        display: none; 
+      }
+
+      .mobile-only { 
+        display: inline-flex; 
+      }
+
+      .logo { 
+        font-size: 1rem; 
+      }
+
+      .tagline { 
+        font-size: 0.55rem; 
+      }
+    }
+
+    /* Hide hamburger on desktop */
+    @media (min-width: 641px) {
+      .hamburger { 
+        display: none; 
+      }
+
+      .mobile-nav { 
+        display: none !important; 
+      }
+    }
+
+    /* Demo content styling */
+    .demo-content {
+      max-width: 1160px;
+      margin: 80px auto;
+      padding: 0 1rem;
+      text-align: center;
+    }
+
+    .demo-content h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .demo-content p {
+      font-size: 1.1rem;
+      color: var(--muted);
+    }
+  </style>
+
+<body>
+
+  <!-- NAVIGATION BAR -->
+  <header class="header">
+    <div class="header-inner">
+      <!-- Left: Logo -->
+      <a class="logo" href="index.html">
+        <img src="amm.png" alt="CopOnline Logo" style="width:50px;height:50px;" />
+        <div style="display:flex;flex-direction:column;line-height:1.3">
+          <div>WebCop.my</div>
+          <div class="tagline">Digital Company Chop</div>
+        </div>
+      </a>
+
+      <!-- Right -->
+      <div class="header-right">
+        <!-- Desktop Navigation -->
+        <nav class="nav desktop-only">
+          <a href="pricing.html">Pricing</a>
+          <a href="faq.html" class="active">FAQ</a>
+          <a href="contact.html">Contact</a>
+          <a href="pdf.html" style="color:#2563eb;font-weight:600;">Free PDF Stamp + Sign</a>
+          <a href="editor.html" style="color:#b91c1c;font-weight:600;">PDF Editor</a>
+        </nav>
+
+        <div class="divider desktop-only"></div>
+
+        <!-- Language Toggle -->
+        <a href="/?lang=ms" class="btn btn-outline" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4f46e5;">
+          BM
+        </a>
+
+        <!-- Hamburger (Mobile) -->
+        <button id="hamburger" class="hamburger mobile-only" aria-label="Toggle menu">☰</button>
+      </div>
+
+      <!-- Mobile dropdown -->
+      <div id="mobile-menu" class="mobile-nav" style="display:none;">
+        <a href="pricing.html">Pricing</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html" class="active">Contact</a>
+        <a href="pdf.html" style="color:#2563eb;font-weight:600;">Free PDF Stamp + Sign</a>
+        <a href="editor.html" style="color:#b91c1c;font-weight:600;">PDF Editor</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Demo Content -->
+  <div class="demo-content">
+    <h1>Navigation Bar Demo</h1>
+    <p>This is a fully responsive navigation bar with mobile hamburger menu.</p>
+  </div>
+
+  <!-- JavaScript for Mobile Menu Toggle -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var burger = document.getElementById('hamburger');
+      var mobile = document.getElementById('mobile-menu');
+      
+      if (burger && mobile) {
+        burger.addEventListener('click', function () {
+          mobile.style.display = (mobile.style.display === 'none' || mobile.style.display === '') ? 'flex' : 'none';
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - WebCop.my</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    
+    .container {
+      background: white;
+      padding: 3rem;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 90%;
+    }
+    
+    .success-icon {
+      font-size: 4rem;
+      color: #10b981;
+      margin-bottom: 1rem;
+    }
+    
+    h1 {
+      color: #1f2d3d;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: #6b7280;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin: 0.5rem;
+      transition: background 0.2s ease;
+    }
+    
+    .btn:hover {
+      background: #4f46e5;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    
+    .status-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    
+    #status {
+      font-weight: 600;
+      color: #0369a1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon">✓</div>
+    <h1>Payment Successful!</h1>
+    <p>Thank you for your purchase. Your HD company chop download will start automatically.</p>
+    
+    <div class="status-box">
+      <p id="status">Verifying payment...</p>
+    </div>
+    
+    <button id="download-btn" class="btn" style="display:none;">
+      Download HD Now
+    </button>
+    
+    <div id="manual-download" style="display:none; margin-top: 2rem;">
+      <p>If download doesn't start automatically:</p>
+      <button onclick="retryDownload()" class="btn">
+        Click to Download
+      </button>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+      <a href="/" class="btn btn-secondary">Back to Home</a>
+    </div>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const orderId = urlParams.get('order_id');
+    
+    async function verifyAndDownload() {
+      try {
+        const response = await fetch('http://localhost:3000/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, token })
+        });
+        
+        const data = await response.json();
+        
+        if (data.valid) {
+          document.getElementById('status').textContent = 'Payment verified! Starting download...';
+          document.getElementById('status').style.color = '#10b981';
+          
+          // Send message to opener window (main page)
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({
+              type: 'payment_success',
+              token: token,
+              orderId: orderId
+            }, '*');
+            
+            // Close this window after a delay
+            setTimeout(() => {
+              window.close();
+            }, 2000);
+          } else {
+            // If opener is closed, show manual download
+            document.getElementById('manual-download').style.display = 'block';
+            document.getElementById('download-btn').style.display = 'inline-block';
+            document.getElementById('download-btn').onclick = () => {
+              alert('Please return to the main page to download your file.');
+              window.location.href = '/';
+            };
+          }
+        } else {
+          document.getElementById('status').textContent = 'Payment verification failed: ' + data.message;
+          document.getElementById('status').style.color = '#dc2626';
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        document.getElementById('status').textContent = 'Error verifying payment. Please try again.';
+        document.getElementById('status').style.color = '#dc2626';
+      }
+    }
+    
+    function retryDownload() {
+      verifyAndDownload();
+    }
+    
+    // Start verification on page load
+    window.addEventListener('DOMContentLoaded', verifyAndDownload);
+    
+    // Listen for messages from main page
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'close_window') {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simple PDF Editor</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+    }
+
+    #editor-container {
+        display: flex;
+        gap: 20px;
+    }
+
+    #pdf-view {
+        position: relative;
+        width: 600px;
+        border: 1px solid #ccc;
+        background: white;
+        padding: 10px;
+    }
+
+    canvas {
+        width: 100%;
+        border: 1px solid #aaa;
+    }
+
+    .editable-text {
+        position: absolute;
+        background: rgba(255,255,0,0.3);
+        padding: 2px;
+        border: 1px dashed #444;
+        cursor: text;
+        font-size: 12px;
+    }
+
+    #controls {
+        margin-bottom: 15px;
+    }
+
+    button {
+        padding: 10px 16px;
+        border: none;
+        background: #007bff;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    button:hover {
+        background: #0056b3;
+    }
+</style>
+</head>
+<body>
+
+<h2>Simple PDF Editor</h2>
+
+<div id="controls">
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <button id="editTextBtn">Edit Text</button>
+</div>
+
+<div id="editor-container">
+    <div id="pdf-view"></div>
+</div>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script>
+let pdfInstance = null;
+let currentPage = null;
+let editingEnabled = false;
+
+document.getElementById("pdfFile").addEventListener("change", handlePDFUpload);
+document.getElementById("editTextBtn").addEventListener("click", enableTextEditing);
+
+function handlePDFUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+
+    pdfjsLib.getDocument(url).promise.then(pdf => {
+        pdfInstance = pdf;
+        loadPage(1);
+    });
+}
+
+function loadPage(pageNumber) {
+    pdfInstance.getPage(pageNumber).then(page => {
+        currentPage = page;
+        displayPDFPage();
+    });
+}
+
+function displayPDFPage() {
+    const viewport = currentPage.getViewport({ scale: 1.5 });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    const ctx = canvas.getContext("2d");
+
+    const container = document.getElementById("pdf-view");
+    container.innerHTML = "";
+    container.appendChild(canvas);
+
+    currentPage.render({ canvasContext: ctx, viewport }).promise.then(() => {
+        extractTextLayer(currentPage, viewport);
+    });
+}
+
+function extractTextLayer(page, viewport) {
+    page.getTextContent().then(textContent => {
+        const container = document.getElementById("pdf-view");
+
+        textContent.items.forEach(item => {
+
+            // Convert PDF transform → HTML coords (PDF.js standard formula)
+            const tx = pdfjsLib.Util.transform(
+                pdfjsLib.Util.transform(viewport.transform, item.transform),
+                [1, 0, 0, -1, 0, 0] // flip Y for HTML
+            );
+
+            const left = tx[4];
+            const top = viewport.height - tx[5];
+
+            // Create text box
+            let div = document.createElement("div");
+            div.className = "editable-text";
+
+            div.style.left = `${left}px`;
+            div.style.top  = `${top}px`;
+            div.style.fontSize = `${item.height}px`;
+            div.style.lineHeight = `${item.height}px`;
+
+            // Correct width (no more scaleX problems)
+            div.style.width = `${item.width * viewport.scale}px`;
+
+            div.innerText = item.str;
+            div.contentEditable = false;
+
+            container.appendChild(div);
+        });
+    });
+}
+
+function enableTextEditing() {
+    editingEnabled = !editingEnabled;
+
+    const fields = document.querySelectorAll(".editable-text");
+
+    fields.forEach(f => {
+        f.contentEditable = editingEnabled;
+        f.style.background = editingEnabled ? "rgba(255,255,0,0.5)" : "transparent";
+        f.style.border = editingEnabled ? "1px dashed red" : "none";
+    });
+
+    document.getElementById("editTextBtn").innerText =
+        editingEnabled ? "Disable Edit" : "Edit Text";
+}
+</script>
+
+</body>
+</html>

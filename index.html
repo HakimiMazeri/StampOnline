@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>WebCop.my - Digital Company Chop Generator</title>
+  <meta name="description" content="Digital Company Chop Generator built for Malaysia." />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <header class="header" style="position:relative;">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <img src="amm.png" alt="WebCop.my Logo" style="width:50px;height:50px;" />
+        <div style="display:flex;flex-direction:column;line-height:1.3">
+          <div>WebCop.my</div>
+          <div class="tagline">Digital Company Cop</div>
+        </div>
+      </a>
+
+      <div class="header-right">
+        <nav class="nav desktop-only">
+          <a href="pricing.html" class="">Pricing</a>
+          <a href="faq.html" class="">FAQ</a>
+          <a href="contact.html" class="">Contact</a>
+          <a href="pdf.html" class="active" style="color:#2563eb;font-weight:600;">Free PDF Stamp + Sign</a>
+          <a href="editor.html" class="" style="color:#b91c1c;font-weight:600;">PDF Editor</a>
+        </nav>
+
+        <div class="divider desktop-only"></div>
+
+        <a href="/?lang=ms" class="btn btn-outline" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4f46e5;">BM</a>
+
+        <button id="hamburger" class="hamburger mobile-only" aria-label="Toggle menu">☰</button>
+      </div>
+
+      <div id="mobile-menu" class="mobile-nav" style="display:none;">
+        <a href="/pricing">Pricing</a>
+        <a href="/faq">FAQ</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+        <a href="free-stamp.php" class="active" style="color:#2563eb;font-weight:600;">Free Stamp + Sign</a>
+        <a href="/mega-pack.php" class="" style="color:#b91c1c;font-weight:600;">Mega Sticker Pack Promo</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero" style="margin-top:40px;margin-bottom:40px;">
+      <h1>Create Your Digital Company Chop Instantly</h1>
+      <p style="margin-top:15px;color:#556178;">
+        No physical stamp. Instant generation with SSM No. and address. Preview below or on the right; download clean version for free.
+      </p>
+    </div>
+
+    <div class="grid-2" style="align-items:start;">
+      <div class="card">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:20px;font-weight:700;">Generate Your Chop</div>
+          <div style="font-size:14px;color:#556178;margin-top:4px;">
+            No login needed. Design is final once downloaded.
+          </div>
+        </div>
+
+        <form id="stamp-form" style="display:grid;gap:1rem;">
+          <div>
+            <label class="field-label">Template</label>
+            <select name="template" class="input">
+              <option value="round">🌀 Round Stamp</option>
+              <option value="box">🧱 Box Stamp</option>
+              <option value="info">📦 Info Stamp</option>
+            </select>
+          </div>
+
+          <div class="template-fields" data-for="round">
+            <label class="field-label">Company Name</label>
+            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
+
+            <label class="field-label">Company No. (New)</label>
+            <input class="input" name="ssmNoNew" value="202401234567" />
+
+            <label class="field-label">Company No. (Old)</label>
+            <input class="input" name="ssmNoOld" value="123456-A" />
+          </div>
+
+          <div class="template-fields" data-for="box">
+            <label class="field-label">Company Name</label>
+            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
+
+            <label class="field-label">Company No. (New)</label>
+            <input class="input" name="ssmNoNew" value="202401234567" />
+            <input class="input" name="ssmNoOld" value="123456-A" style="display:none;" />
+
+            <label class="field-label">Address</label>
+            <input class="input" name="address1" value="No. 88, Jalan Mega 1" placeholder="Address Line 1" />
+            <input class="input" name="address2" value="Taman Industri Mega" placeholder="Address Line 2" />
+            <input class="input" name="address3" value="43000 Kajang, Selangor" placeholder="Address Line 3" />
+          </div>
+
+          <div class="template-fields" data-for="info">
+            <label class="field-label">Company Name</label>
+            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
+
+            <label class="field-label">Company No. (New)</label>
+            <input class="input" name="ssmNoNew" value="202401234567" />
+            <input class="input" name="ssmNoOld" value="123456-A" style="display:none;" />
+
+            <label class="field-label">Address</label>
+            <input class="input" name="address1" value="No. 88, Jalan Mega 1" />
+            <input class="input" name="address2" value="Taman Industri Mega" />
+            <input class="input" name="address3" value="43000 Kajang, Selangor" />
+
+            <label class="field-label">Telephone</label>
+            <input class="input" name="phone" value="+603-8899 1234" />
+
+            <label class="field-label">Email (shown on stamp)</label>
+            <input class="input" name="email" value="info@megahholdings.com" />
+          </div>
+
+          <div>
+            <label class="field-label">Billing Email (required for download)</label>
+            <input class="input" name="billingEmail" placeholder="billing@email.com" />
+          </div>
+
+          <div>
+            <label class="field-label">Stamp Colour</label>
+            <div style="display:flex;gap:8px;">
+              <button type="button" data-color="black" data-active="1" class="btn btn-outline" style="flex:1;">Black</button>
+              <button type="button" data-color="red" class="btn btn-outline" style="flex:1;">Red</button>
+              <button type="button" data-color="blue" class="btn btn-outline" style="flex:1;">Blue</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+            <button type="button" id="btn-download-free" class="btn btn-outline" style="flex:1;min-width:140px;">
+              Download Free
+            </button>
+            <button type="button" id="btn-download-hd" class="btn btn-primary" style="flex:1;min-width:140px;">
+              Download HD (RM3)
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-weight:600;">Live Preview</div>
+          <div style="font-size:12px;color:#6b7280;">Looks like your real chop</div>
+        </div>
+        <div id="stamp-preview" style="padding:1rem 0;display:flex;justify-content:center;"></div>
+        <div class="small">Vector-based; sharp on any document. Free version includes watermark.</div>
+        <div style="margin-top:8px;background:#eef4ff;padding:8px 12px;border-radius:8px;font-size:12px;color:#374151;text-align:center;">
+          Fill details and click download.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-title">WebCop.my</div>
+        <div class="small">Digital Company Chop Generator built for Malaysia.</div>
+      </div>
+
+      <div class="footer-section">
+        <div class="footer-title">Product</div>
+        <a href="/pricing">Pricing</a>
+        <a href="/index">Try Free</a>
+        <a href="/faq">FAQ</a>
+      </div>
+
+      <div class="footer-section">
+        <div class="footer-title">Company</div>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+
+      <div class="footer-section">
+        <div class="footer-title">Support</div>
+        <a href="/faq">Help Center</a>
+        <a href="/contact">Contact</a>
+        <div class="footer-note">
+          © 2025 CopOn9.my <br>
+          <span style="color:#6b7280;"></span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BCL Payment Modal -->
+  <div id="bcl-payment-modal" class="payment-modal">
+    <div class="payment-modal-content">
+      <div class="payment-modal-header">
+        <div>
+          <h3>Unlock HD Download</h3>
+          <p class="modal-subtitle">One-time payment for high-quality stamp</p>
+        </div>
+        <button id="close-bcl-modal" class="modal-close-btn">×</button>
+      </div>
+      
+      <div class="payment-summary">
+        <div class="summary-row">
+          <span>HD Company Chop</span>
+          <span class="price">RM3.00</span>
+        </div>
+        <div class="summary-details">
+          <span>One-time payment</span>
+          <span>No watermark</span>
+        </div>
+      </div>
+      
+      <div id="payment-methods">
+        <p class="methods-title">Choose payment method:</p>
+        <div class="methods-grid">
+          <button class="payment-method-btn active" data-method="FPX">
+            <div class="method-icon">🏦</div>
+            <div class="method-name">FPX</div>
+          </button>
+          <button class="payment-method-btn" data-method="CARD">
+            <div class="method-icon">💳</div>
+            <div class="method-name">Card</div>
+          </button>
+          <button class="payment-method-btn" data-method="TOUCHNGO">
+            <div class="method-icon">📱</div>
+            <div class="method-name">TNG</div>
+          </button>
+          <button class="payment-method-btn" data-method="GRABPAY">
+            <div class="method-icon">🚗</div>
+            <div class="method-name">GrabPay</div>
+          </button>
+          <button class="payment-method-btn" data-method="BOOST">
+            <div class="method-icon">⚡</div>
+            <div class="method-name">Boost</div>
+          </button>
+          <button class="payment-method-btn" data-method="ALL">
+            <div class="method-icon">🌐</div>
+            <div class="method-name">All</div>
+          </button>
+        </div>
+      </div>
+      
+      <div id="payment-processing" class="processing-container">
+        <div class="spinner"></div>
+        <p>Redirecting to secure payment...</p>
+      </div>
+      
+      <div id="payment-action" class="action-container">
+        <button id="proceed-payment" class="btn btn-primary pay-btn">
+          Proceed to Pay RM3.00
+        </button>
+        <p class="security-note">
+          🔒 Secure payment by BCL.my
+        </p>
+      </div>
+      
+      <div id="payment-success" class="success-container">
+        <div class="success-icon">✓</div>
+        <h3>Payment Successful!</h3>
+        <p>Your HD download is ready.</p>
+        <button id="download-hd-paid" class="btn btn-primary">
+          Download HD Now
+        </button>
+      </div>
+      
+      <div id="payment-error" class="error-container"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
