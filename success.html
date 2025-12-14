@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Status - WebCop.my</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet>
+  <style>
+    /* Keep your existing styles, add these: */
+    .status-success { color: #10b981; }
+    .status-failed { color: #dc2626; }
+    .status-pending { color: #f59e0b; }
+    
+    .status-card {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-left: 4px solid #e5e7eb;
+    }
+    
+    .status-card.success { border-left-color: #10b981; background: #f0fdf4; }
+    .status-card.failed { border-left-color: #dc2626; background: #fef2f2; }
+    .status-card.pending { border-left-color: #f59e0b; background: #fffbeb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Status will be dynamically set by JavaScript -->
+    <div class="success-icon" id="statusIcon">⏳</div>
+    <h1 id="statusTitle">Processing...</h1>
+    <p id="statusMessage">Checking payment status...</p>
+    
+    <div class="status-card" id="statusCard">
+      <div class="detail-item">
+        <span>Order Reference:</span>
+        <span style="font-family: monospace; font-weight: 600;" id="orderRef"></span>
+      </div>
+      <div class="detail-item">
+        <span>Customer Email:</span>
+        <span id="customerEmail"></span>
+      </div>
+      <div class="detail-item">
+        <span>Amount:</span>
+        <span style="font-weight: 600;" id="amount"></span>
+      </div>
+      <div class="detail-item">
+        <span>Status:</span>
+        <span id="statusText"></span>
+      </div>
+    </div>
+    
+    <!-- Success actions -->
+    <div id="successActions" style="display: none;">
+      <button onclick="downloadHDStamp()" class="btn">
+        ⬇️ Download HD Stamp Now
+      </button>
+      <button onclick="sendToEmail()" class="btn" style="background: #6b7280; margin-left: 10px;">
+        📧 Send to Email
+      </button>
+    </div>
+    
+    <!-- Failed actions -->
+    <div id="failedActions" style="display: none;">
+      <button onclick="retryPayment()" class="btn" style="background: #dc2626;">
+        🔄 Retry Payment
+      </button>
+      <a href="/" class="btn" style="background: #6b7280; margin-left: 10px;">
+        ← Back to Home
+      </a>
+    </div>
+    
+    <!-- Pending actions -->
+    <div id="pendingActions" style="display: none;">
+      <p style="color: #6b7280; margin-bottom: 1rem;">
+        Your payment is being processed. This may take a few minutes.
+      </p>
+      <button onclick="checkStatus()" class="btn" style="background: #f59e0b;">
+        🔄 Check Status Again
+      </button>
+      <a href="/" class="btn" style="background: #6b7280; margin-left: 10px;">
+        ← Back to Home
+      </a>
+    </div>
+    
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
+      <p style="font-size: 0.85rem; color: #9ca3af;">
+        Need help? <a href="mailto:support@webcop.my" style="color: #6366f1;">Contact Support</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Available URL variables from BCL:
+    // {order_number} - The order ID
+    // {amount} - Payment amount
+    // {status} - Payment status
+    // {customer_email} - Customer email
+    // {customer_name} - Customer name
+    
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderRef = urlParams.get('order_ref') || urlParams.get('order_number');
+    const status = urlParams.get('status') || 'pending';
+    const amount = urlParams.get('amount') || '4.00'; // RM3 + RM1 fee
+    const customerEmail = urlParams.get('customer_email');
+    const reason = urlParams.get('reason');
+    
+    // Available statuses from BCL:
+    // success, failed, pending, cancelled, expired
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!orderRef) {
+        showError('No order reference found. Please ensure you came from the payment page.');
+        return;
+      }
+      
+      // Update UI based on status
+      updateStatusUI(orderRef, status, amount, customerEmail, reason);
+      
+      // Auto-actions based on status
+      if (status === 'success') {
+        // Auto-download after 3 seconds
+        setTimeout(downloadHDStamp, 3000);
+      }
+    });
+    
+    function updateStatusUI(orderRef, status, amount, customerEmail, reason) {
+      // Set order reference
+      document.getElementById('orderRef').textContent = orderRef;
+      document.getElementById('amount').textContent = 'RM ' + amount;
+      document.getElementById('statusText').textContent = status.toUpperCase();
+      
+      // Try to get email from localStorage if not in URL
+      let displayEmail = customerEmail;
+      if (!displayEmail) {
+        const stampData = localStorage.getItem(orderRef);
+        if (stampData) {
+          try {
+            const data = JSON.parse(stampData);
+            displayEmail = data.email;
+          } catch (e) {
+            console.error('Error parsing stamp data:', e);
+          }
+        }
+      }
+      document.getElementById('customerEmail').textContent = displayEmail || 'Not available';
+      
+      // Set status-specific UI
+      const statusCard = document.getElementById('statusCard');
+      const statusIcon = document.getElementById('statusIcon');
+      const statusTitle = document.getElementById('statusTitle');
+      const statusMessage = document.getElementById('statusMessage');
+      
+      // Hide all action sections first
+      document.getElementById('successActions').style.display = 'none';
+      document.getElementById('failedActions').style.display = 'none';
+      document.getElementById('pendingActions').style.display = 'none';
+      
+      if (status === 'success') {
+        // SUCCESS
+        statusIcon.textContent = '✅';
+        statusIcon.style.color = '#10b981';
+        statusTitle.textContent = 'Payment Successful!';
+        statusMessage.textContent = 'Thank you for your purchase. Your HD stamp is ready.';
+        statusCard.className = 'status-card success';
+        
+        document.getElementById('successActions').style.display = 'block';
+        
+        // Update localStorage to mark as paid
+        updateLocalStorageStatus(orderRef, 'paid');
+        
+      } else if (status === 'failed') {
+        // FAILED
+        statusIcon.textContent = '❌';
+        statusIcon.style.color = '#dc2626';
+        statusTitle.textContent = 'Payment Failed';
+        statusMessage.textContent = reason ? `Reason: ${reason}` : 'Your payment was not successful.';
+        statusCard.className = 'status-card failed';
+        
+        document.getElementById('failedActions').style.display = 'block';
+        
+      } else {
+        // PENDING or other status
+        statusIcon.textContent = '⏳';
+        statusIcon.style.color = '#f59e0b';
+        statusTitle.textContent = 'Payment Processing';
+        statusMessage.textContent = 'Your payment is being processed. Please wait...';
+        statusCard.className = 'status-card pending';
+        
+        document.getElementById('pendingActions').style.display = 'block';
+      }
+    }
+    
+    function updateLocalStorageStatus(orderRef, status) {
+      const stampDataJSON = localStorage.getItem(orderRef);
+      if (stampDataJSON) {
+        try {
+          const stampData = JSON.parse(stampDataJSON);
+          stampData.hdPaid = (status === 'paid');
+          stampData.paymentStatus = status;
+          stampData.paidAt = new Date().toISOString();
+          localStorage.setItem(orderRef, JSON.stringify(stampData));
+        } catch (e) {
+          console.error('Error updating localStorage:', e);
+        }
+      }
+    }
+    
+    function downloadHDStamp() {
+      if (!orderRef) {
+        alert('Order reference not found.');
+        return;
+      }
+      
+      const stampDataJSON = localStorage.getItem(orderRef);
+      
+      if (!stampDataJSON) {
+        alert('Stamp data not found. Please contact support.');
+        return;
+      }
+      
+      try {
+        const stampData = JSON.parse(stampDataJSON);
+        
+        // Show generating message
+        document.getElementById('statusMessage').textContent = 'Generating HD stamp...';
+        
+        // Create download link
+        const content = `
+HD COMPANY CHOP
+================
+
+Company: ${stampData.companyName || 'Not specified'}
+SSM Number: ${stampData.ssmNo || 'Not specified'}
+Template: ${stampData.template || 'round'}
+Color: ${stampData.color || 'black'}
+
+Order Reference: ${orderRef}
+Payment Amount: RM ${amount}
+Paid At: ${new Date().toLocaleString()}
+
+Thank you for purchasing from WebCop.my!
+
+Note: This is a demo receipt. In production, this would be your actual HD stamp image.
+        `;
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `HD_Stamp_${orderRef}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Update UI
+        document.getElementById('statusMessage').textContent = '✅ Download started! Check your downloads folder.';
+        
+      } catch (error) {
+        console.error('Download error:', error);
+        alert('Error generating stamp: ' + error.message);
+      }
+    }
+    
+    function sendToEmail() {
+      alert('Email receipt would be sent in production version.');
+    }
+    
+    function retryPayment() {
+      // Redirect back to payment form with same order reference
+      const stampDataJSON = localStorage.getItem(orderRef);
+      if (stampDataJSON) {
+        try {
+          const stampData = JSON.parse(stampDataJSON);
+          window.location.href = `/?retry_order=${orderRef}&email=${encodeURIComponent(stampData.email)}`;
+        } catch (e) {
+          window.location.href = '/';
+        }
+      } else {
+        window.location.href = '/';
+      }
+    }
+    
+    function checkStatus() {
+      // In production, this would call your server to check payment status
+      alert('Status check would verify with payment gateway in production.');
+      location.reload(); // Simple reload for demo
+    }
+    
+    function showError(message) {
+      document.getElementById('statusIcon').textContent = '❌';
+      document.getElementById('statusIcon').style.color = '#dc2626';
+      document.getElementById('statusTitle').textContent = 'Error';
+      document.getElementById('statusMessage').textContent = message;
+      document.getElementById('statusCard').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
