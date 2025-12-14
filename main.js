@@ -414,125 +414,60 @@ document.addEventListener('DOMContentLoaded', function () {
   let currentOrderId = null;
   let currentPaymentData = null;
 
-  // Download HD button - shows payment modal
-  document.getElementById('btn-download-hd').addEventListener('click', function() {
-    const billingEmail = form.querySelector('[name="billingEmail"]').value;
-    
-    if (!billingEmail) {
-      alert('Please enter your billing email to download.');
-      form.querySelector('[name="billingEmail"]').focus();
-      return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(billingEmail)) {
-      alert('Please enter a valid email address.');
-      return;
-    }
-    
-    // Get form data
-    const d = readForm();
-    currentPaymentData = {
-      email: billingEmail,
-      companyName: d.companyName || 'Company Stamp',
-      amount: 3.00
-    };
-    
-    // Show BCL payment modal
-    showBCLPaymentModal();
-  });
-
-  function showBCLPaymentModal() {
-    const modal = document.getElementById('bcl-payment-modal');
-    modal.style.display = 'flex';
-    
-    // Reset modal state
-    document.getElementById('payment-processing').style.display = 'none';
-    document.getElementById('payment-success').style.display = 'none';
-    document.getElementById('payment-error').style.display = 'none';
-    document.getElementById('payment-action').style.display = 'block';
+// Download HD button - redirects to BCL form
+document.getElementById('btn-download-hd').addEventListener('click', function() {
+  const billingEmail = form.querySelector('[name="billingEmail"]').value;
+  const d = readForm();
+  
+  // Validate email
+  if (!billingEmail) {
+    alert('Please enter your billing email to proceed.');
+    form.querySelector('[name="billingEmail"]').focus();
+    return;
   }
-
-  // Payment method selection
-  document.querySelectorAll('.payment-method-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.payment-method-btn').forEach(b => {
-        b.classList.remove('active');
-      });
-      this.classList.add('active');
-    });
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(billingEmail)) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  
+  // Create unique order reference
+  const timestamp = Date.now();
+  const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const orderRef = `WEBCOP_${timestamp}_${shortHash}`;
+  
+  // Save stamp data to localStorage
+  const stampData = {
+    orderRef: orderRef,
+    email: billingEmail,
+    companyName: d.companyName,
+    ssmNo: d.ssmNo,
+    template: d.template,
+    color: d.color,
+    address: d.address,
+    timestamp: timestamp,
+    hdPaid: false
+  };
+  
+  localStorage.setItem(orderRef, JSON.stringify(stampData));
+  localStorage.setItem('lastOrderRef', orderRef);
+  
+  // Redirect to BCL form WITHOUT return_url parameter
+  // BCL will use the pre-configured URLs from your dashboard
+  const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
+  
+  const redirectParams = new URLSearchParams({
+    // These parameters will be available in the receipt page
+    'order_ref': orderRef,
+    'customer_email': billingEmail,
+    'customer_name': d.companyName.substring(0, 50) || 'Customer',
+    'product': `HD Company Chop - ${d.companyName.substring(0, 30) || 'Stamp'}`,
+    'amount': '3.00',
+    'currency': 'MYR'
   });
-
-  // Proceed to payment
-  document.getElementById('proceed-payment').addEventListener('click', async function() {
-    const selectedMethod = document.querySelector('.payment-method-btn.active')?.dataset.method || 'ALL';
-    
-    // Show processing
-    document.getElementById('payment-action').style.display = 'none';
-    document.getElementById('payment-processing').style.display = 'block';
-    
-    try {
-      // Call your backend to create BCL payment
-      const response = await fetch('http://localhost:3000/create-bcl-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...currentPaymentData,
-          payment_method: selectedMethod
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        currentOrderId = data.orderId;
-        
-        // Create hidden form for BCL payment
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.paymentUrl;
-        form.style.display = 'none';
-        
-        // Add all parameters
-        Object.entries(data.params).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        });
-        
-        document.body.appendChild(form);
-        form.submit();
-        
-      } else {
-        throw new Error(data.error || 'Payment initiation failed');
-      }
-      
-    } catch (error) {
-      console.error('Payment error:', error);
-      document.getElementById('payment-processing').style.display = 'none';
-      document.getElementById('payment-error').style.display = 'block';
-      document.getElementById('payment-error').textContent = 'Payment error: ' + error.message;
-      document.getElementById('payment-action').style.display = 'block';
-    }
-  });
-
-  // Close modal
-  document.getElementById('close-bcl-modal').addEventListener('click', function() {
-    document.getElementById('bcl-payment-modal').style.display = 'none';
-  });
-
-  // Close modal when clicking outside
-  document.getElementById('bcl-payment-modal').addEventListener('click', function(e) {
-    if (e.target.id === 'bcl-payment-modal') {
-      this.style.display = 'none';
-    }
-  });
-
-  // Download after payment
-  document.getElementById('download-hd-paid').addEventListener('click', function() {
-    downloadStamp(true, true); // HD paid version
-    document.getElementById('bcl-payment-modal').style.display = 'none';
-  });
+  
+  console.log('Redirecting to BCL payment form...');
+  window.location.href = `${baseUrl}?${redirectParams.toString()}`;
+});
 });
