@@ -450,9 +450,8 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
     hdPaid: false
   };
   
-  localStorage.setItem(orderRef, JSON.stringify(stampData));
-  localStorage.setItem('lastOrderRef', orderRef);
-  
+  const stampDataString = JSON.stringify(stampData);
+  const encodedStampData = btoa(encodeURIComponent(stampDataString)); // Base64 encode
   // Redirect to BCL form WITHOUT return_url parameter
   // BCL will use the pre-configured URLs from your dashboard
   const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
@@ -465,9 +464,16 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
     'product': `HD Company Chop - ${d.companyName.substring(0, 30) || 'Stamp'}`,
     'amount': '3.00',
     'currency': 'MYR'
+
+     'stamp_data': encodedStampData,
+    'stamp_template': d.template || 'round',
+    'stamp_color': d.color || 'black',
+    'stamp_company': encodeURIComponent(d.companyName || ''),
+    'stamp_ssm': encodeURIComponent(d.ssmNo || '')
   });
   
   console.log('Redirecting to BCL payment form...');
   window.location.href = `${baseUrl}?${redirectParams.toString()}`;
 });
 });
+
