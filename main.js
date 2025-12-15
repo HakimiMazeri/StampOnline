@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const d = readForm();
     
     // Create filename
-    const fileName = 'Company_Chop_' + 
+    const fileName = 'Company_Stamp_' + 
                     (d.companyName ? d.companyName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20) : 'Stamp') + 
                     '_' + Date.now() + 
                     (isHD ? '_HD' : '') + 
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
           ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
           ctx.textAlign = 'right';
           ctx.textBaseline = 'bottom';
-          ctx.fillText('WebCop.my | BCL', canvas.width - 5, canvas.height - 5);
+          ctx.fillText('WebStamp.my | BCL', canvas.width - 5, canvas.height - 5);
         }
         
         // Convert canvas to data URL and download
@@ -410,78 +410,104 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // BCL Payment Variables
-  let currentOrderId = null;
-  let currentPaymentData = null;
+  // =============================================
+  // BCL PAYMENT - OPTION 1 (Email Encoding)
+  // =============================================
 
-// Download HD button - redirects to BCL form
-document.getElementById('btn-download-hd').addEventListener('click', function() {
-  const billingEmail = form.querySelector('[name="billingEmail"]').value;
-  const d = readForm();
-  
-  // Validate email
-  if (!billingEmail) {
-    alert('Please enter your billing email to proceed.');
-    form.querySelector('[name="billingEmail"]').focus();
-    return;
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(billingEmail)) {
-    alert('Please enter a valid email address.');
-    return;
-  }
-  
-  // Create unique order reference
-  const timestamp = Date.now();
-  const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
-  
-  // Create stamp data
-  const stampData = {
-    orderRef: orderRef,
-    email: billingEmail,
-    companyName: d.companyName,
-    ssmNo: d.ssmNo,
-    template: d.template,
-    color: d.color,
-    address: d.address,
-    timestamp: timestamp
-  };
-  
-  // Method 1: URL Parameter Encoding (Primary)
-  const stampDataString = JSON.stringify(stampData);
-  const encodedData = btoa(encodeURIComponent(stampDataString));
-  
-  // Method 2: SessionStorage with unique ID (Backup)
-  const sessionId = `stamp_${Date.now()}`;
-  sessionStorage.setItem(sessionId, stampDataString);
-  
-  // Your GitHub username (CORRECT THIS!)
-  const githubUsername = 'hakimimazeri'; // CHANGE TO YOUR ACTUAL USERNAME
-  
-  // Create return URL with BOTH methods
-  const returnUrl = `https://${githubUsername}.github.io/success.html?order_ref=${orderRef}&data=${encodedData}&session_id=${sessionId}`;
-  
-  console.log('Preparing BCL redirect with:', {
-    orderRef: orderRef,
-    returnUrl: returnUrl,
-    dataLength: encodedData.length
+  document.getElementById('btn-download-hd').addEventListener('click', function() {
+    const billingEmail = form.querySelector('[name="billingEmail"]').value;
+    const d = readForm();
+    
+    // Validate email
+    if (!billingEmail) {
+      alert('Please enter your billing email to proceed.');
+      form.querySelector('[name="billingEmail"]').focus();
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(billingEmail)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    
+    // Validate company name is provided
+    if (!d.companyName || d.companyName.trim() === '') {
+      alert('Please enter your company name.');
+      form.querySelector('[name="companyName"]').focus();
+      return;
+    }
+    
+    // Create unique order reference
+    const timestamp = Date.now();
+    const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
+    
+    console.log('📦 Preparing stamp data for BCL...');
+    
+    // Create MINIMAL stamp data with short property names
+    const stampData = {
+      // Short property names to save space
+      cn: (d.companyName || '').trim(),          // cn = companyName
+      sn: (d.ssmNo || '').trim(),               // sn = ssmNo
+      t: d.template || 'round',                 // t = template
+      c: d.color || 'black',                    // c = color
+      e: billingEmail.trim(),                   // e = email
+      // Address lines (only include if not empty)
+      a1: (d.address[0] || '').trim(),
+      a2: (d.address[1] || '').trim(),
+      a3: (d.address[2] || '').trim(),
+      // Phone (optional)
+      p: (d.phone || '').trim(),
+      // Old SSM (optional)
+      so: (d.ssmNoOld || '').trim(),
+      // Timestamp
+      ts: timestamp,
+      // Order reference
+      or: orderRef
+    };
+    
+    console.log('Stamp data prepared:', stampData);
+    
+    // Convert to JSON and encode with Base64
+    const stampDataString = JSON.stringify(stampData);
+    console.log('JSON size:', stampDataString.length, 'characters');
+    
+    // Base64 encode (URL safe)
+    const encodedStampData = btoa(encodeURIComponent(stampDataString));
+    console.log('Base64 size:', encodedStampData.length, 'characters');
+    
+    // Create special email format: real-email#ENCODED_DATA
+    const specialEmail = `${billingEmail}#${encodedStampData}`;
+    console.log('Special email created (first 100 chars):', specialEmail.substring(0, 100));
+    
+    // Save to sessionStorage as backup (works for same session)
+    sessionStorage.setItem(`stamp_${orderRef}`, stampDataString);
+    console.log('Saved to sessionStorage with key:', `stamp_${orderRef}`);
+    
+    // Build BCL redirect URL
+    const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
+    
+    const redirectParams = new URLSearchParams({
+      // Required BCL parameters
+      'order_ref': orderRef,
+      'customer_email': specialEmail,  // ← Contains encoded stamp data!
+      'customer_name': (d.companyName || 'Customer').substring(0, 50),
+      'product': `HD Company Stamp - ${(d.companyName || 'Company').substring(0, 30)}`,
+      'amount': '3.00',
+      'currency': 'MYR',
+      // Optional: Include address if needed
+      'address': d.address[0] || ''
+    });
+    
+    const fullBCLUrl = `${baseUrl}?${redirectParams.toString()}`;
+    console.log('BCL URL length:', fullBCLUrl.length, 'characters');
+    console.log('BCL URL (first 200 chars):', fullBCLUrl.substring(0, 200));
+    
+    // Show confirmation to user
+    if (confirm(`Proceed to payment for HD stamp?\n\nCompany: ${d.companyName}\nAmount: RM 3.00\n\nClick OK to continue to secure payment.`)) {
+      console.log('🚀 Redirecting to BCL payment...');
+      window.location.href = fullBCLUrl;
+    }
   });
-  
-  // Redirect to BCL
-  const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
-  
-  const redirectParams = new URLSearchParams({
-    'order_ref': orderRef,
-    'customer_email': billingEmail,
-    'customer_name': d.companyName.substring(0, 50) || 'Customer',
-    'product': `HD Company Stamp - ${d.companyName.substring(0, 30) || 'Custom Stamp'}`,
-    'amount': '3.00',
-    'currency': 'MYR',
-    'return_url': returnUrl
-  });
-  
-  window.location.href = `${baseUrl}?${redirectParams.toString()}`;
-});
 });
