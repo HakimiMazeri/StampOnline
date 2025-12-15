@@ -173,6 +173,35 @@
       font-size: 0.95rem;
     }
     
+    .debug-info {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-family: monospace;
+      font-size: 0.85rem;
+      text-align: left;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    .debug-toggle {
+      background: transparent;
+      border: 1px solid #d1d5db;
+      color: #6b7280;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin: 0.5rem 0;
+    }
+    
+    .debug-toggle:hover {
+      background: #f3f4f6;
+    }
+    
     @keyframes bounce {
       from { transform: translateY(0px); }
       to { transform: translateY(-10px); }
@@ -182,6 +211,11 @@
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
     
     @media (max-width: 640px) {
@@ -220,6 +254,10 @@
     <h1 id="statusTitle">Processing Payment...</h1>
     <p id="statusMessage">Checking payment status...</p>
     
+    <!-- Debug toggle -->
+    <button class="debug-toggle" onclick="toggleDebug()">🔍 Show Debug Info</button>
+    <div id="debugInfo" class="debug-info"></div>
+    
     <!-- Data warning (shown when stamp data is missing) -->
     <div id="dataWarning" class="data-warning" style="display: none;">
       <strong>⚠️ Stamp Data Issue:</strong> Your payment was successful but stamp information was not properly transferred. 
@@ -254,7 +292,7 @@
       <button onclick="sendToEmail()" class="btn btn-secondary">
         📧 Send to Email
       </button>
-      <a href="/" class="btn" style="background: #9ca3af; color: white; margin-left: 10px;">
+      <a href="/" class="btn" style="background: #9ca3af; color: white;">
         ← Back to Home
       </a>
     </div>
@@ -301,338 +339,615 @@
     <div class="footer">
       <p>
         Need help? <a href="mailto:support@webstamp.my">Contact Support</a>
-        <br><small>Domain: <span id="currentDomain"></span></small>
+        <br><small>WebStamp.my | Secure HD Stamp Generator</small>
       </p>
     </div>
   </div>
 
   <script>
     // =============================================
-    // CONFIGURATION - UPDATE THIS!
+    // CONFIGURATION
     // =============================================
-    const GITHUB_USERNAME = 'hakimimazeri'; // ← CORRECT USERNAME
-    const EXPECTED_DOMAIN = `${GITHUB_USERNAME}.github.io`;
-    const SITE_URL = `https://${EXPECTED_DOMAIN}`;
+    let debugMode = false;
+    let autoDownloadAttempted = false;
+    let currentStampData = null;
+    let currentOrderRef = null;
     
     // =============================================
-    // HELPER FUNCTIONS (NO LOCALSTORAGE USAGE)
+    // DEBUG FUNCTIONS
+    // =============================================
+    
+    function toggleDebug() {
+      debugMode = !debugMode;
+      document.getElementById('debugInfo').style.display = debugMode ? 'block' : 'none';
+      document.querySelector('.debug-toggle').textContent = debugMode ? '🔍 Hide Debug Info' : '🔍 Show Debug Info';
+      
+      if (debugMode) {
+        updateDebugInfo();
+      }
+    }
+    
+    function updateDebugInfo() {
+      const debugEl = document.getElementById('debugInfo');
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      let debugHTML = '<strong>URL Parameters:</strong><br>';
+      urlParams.forEach((value, key) => {
+        debugHTML += `${key}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}<br>`;
+      });
+      
+      debugHTML += '<br><strong>Stamp Data:</strong><br>';
+      if (currentStampData) {
+        debugHTML += JSON.stringify(currentStampData, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+      } else {
+        debugHTML += 'No stamp data recovered';
+      }
+      
+      debugHTML += `<br><br><strong>Session Storage Keys:</strong><br>`;
+      const keys = Object.keys(sessionStorage);
+      keys.forEach(key => {
+        if (key.startsWith('stamp_')) {
+          debugHTML += `${key}<br>`;
+        }
+      });
+      
+      debugEl.innerHTML = debugHTML;
+    }
+    
+    function logDebug(message, data = null) {
+      console.log(`[DEBUG] ${message}`, data || '');
+      if (debugMode) {
+        updateDebugInfo();
+      }
+    }
+    
+    // =============================================
+    // DATA RECOVERY FUNCTIONS
     // =============================================
     
     /**
-     * Decode stamp data from URL parameters
+     * Extract stamp data from BCL email encoding
      */
-    function getPaymentDataFromURL() {
+    function extractStampDataFromBCL() {
+      logDebug('Starting data extraction from BCL...');
+      
       const urlParams = new URLSearchParams(window.location.search);
+      
+      // Get basic BCL variables
       const orderRef = urlParams.get('order_ref') || urlParams.get('order_number');
       const status = urlParams.get('status') || 'pending';
       const amount = urlParams.get('amount') || '4.00';
-      const customerEmail = urlParams.get('customer_email');
-      const reason = urlParams.get('reason');
+      const email = urlParams.get('email') || urlParams.get('customer_email');
+      const rawEmail = email; // Keep original for debugging
       
-      // Get stamp data from URL parameters
+      logDebug('BCL variables found', { orderRef, status, amount, email: email ? 'Present' : 'Missing' });
+      
       let stampData = null;
-      const encodedData = urlParams.get('data') || urlParams.get('stamp_data') || urlParams.get('custom_data');
+      let recoveryMethod = 'none';
       
-      if (encodedData) {
-        try {
-          // Try Base64 decode
-          const decoded = decodeURIComponent(atob(encodedData));
-          stampData = JSON.parse(decoded);
-          console.log('✅ Stamp data decoded from URL');
-        } catch (e1) {
+      // METHOD 1: Check if email contains encoded data (format: email#BASE64_DATA)
+      if (email && email.includes('#')) {
+        logDebug('Email contains # symbol, attempting to extract encoded data...');
+        const parts = email.split('#');
+        if (parts.length >= 2) {
+          const realEmail = parts[0];
+          const encodedData = parts.slice(1).join('#'); // Join back in case # appears in data
+          
+          logDebug('Email parts found', { 
+            realEmail: realEmail.substring(0, 50),
+            encodedLength: encodedData.length,
+            encodedPreview: encodedData.substring(0, 50) + '...'
+          });
+          
           try {
-            // Try direct JSON parse
-            stampData = JSON.parse(encodedData);
-            console.log('✅ Stamp data parsed directly from URL');
-          } catch (e2) {
-            console.error('❌ Failed to parse stamp data:', e2);
-            stampData = null;
+            // Decode Base64
+            const decodedString = decodeURIComponent(atob(encodedData));
+            stampData = JSON.parse(decodedString);
+            recoveryMethod = 'email_encoding';
+            
+            // Add real email back to data
+            stampData.e = realEmail;
+            
+            logDebug('Successfully decoded data from email', {
+              companyName: stampData.cn,
+              template: stampData.t,
+              color: stampData.c
+            });
+          } catch (decodeError) {
+            logDebug('Failed to decode email data', decodeError.message);
           }
         }
       }
       
-      // Try sessionStorage as backup
-      if (!stampData) {
-        const sessionId = urlParams.get('session_id');
-        if (sessionId) {
+      // METHOD 2: Check sessionStorage backup
+      if (!stampData && orderRef) {
+        logDebug('Trying sessionStorage backup...');
+        const sessionKey = `stamp_${orderRef}`;
+        const sessionData = sessionStorage.getItem(sessionKey);
+        
+        if (sessionData) {
           try {
-            const sessionData = sessionStorage.getItem(sessionId);
-            if (sessionData) {
-              stampData = JSON.parse(sessionData);
-              sessionStorage.removeItem(sessionId);
-              console.log('✅ Stamp data retrieved from sessionStorage');
-            }
-          } catch (e) {
-            console.error('❌ Failed to get sessionStorage data:', e);
+            stampData = JSON.parse(sessionData);
+            recoveryMethod = 'session_storage';
+            sessionStorage.removeItem(sessionKey); // Clean up
+            logDebug('Recovered from sessionStorage', stampData);
+          } catch (parseError) {
+            logDebug('Failed to parse sessionStorage data', parseError.message);
           }
         }
+      }
+      
+      // METHOD 3: Check for any stamp data in sessionStorage (fallback)
+      if (!stampData) {
+        logDebug('Searching for any stamp data in sessionStorage...');
+        const allKeys = Object.keys(sessionStorage);
+        const stampKeys = allKeys.filter(key => key.startsWith('stamp_'));
+        
+        if (stampKeys.length > 0) {
+          // Use the most recent one (by timestamp in key if possible)
+          const recentKey = stampKeys.sort().reverse()[0];
+          try {
+            stampData = JSON.parse(sessionStorage.getItem(recentKey));
+            recoveryMethod = 'session_storage_fallback';
+            sessionStorage.removeItem(recentKey);
+            logDebug('Recovered from fallback sessionStorage', { key: recentKey, data: stampData });
+          } catch (error) {
+            logDebug('Failed to parse fallback data', error.message);
+          }
+        }
+      }
+      
+      // Expand short property names to full names
+      const expandedData = expandStampData(stampData);
+      
+      if (expandedData && expandedData.companyName) {
+        logDebug(`✅ Data recovery successful via ${recoveryMethod}`);
+        logDebug('Expanded stamp data', expandedData);
+      } else {
+        logDebug(`❌ Data recovery failed. Method used: ${recoveryMethod}`);
       }
       
       return {
         orderRef,
-        status: status.toLowerCase(),
+        status,
         amount,
-        customerEmail,
-        reason,
-        stampData
+        email: email ? email.split('#')[0] : email, // Get real email part
+        stampData: expandedData,
+        recoveryMethod
       };
     }
     
     /**
-     * Generate HD stamp image from stamp data
+     * Expand short property names to full names
+     */
+    function expandStampData(shortData) {
+      if (!shortData) return null;
+      
+      return {
+        companyName: shortData.cn || shortData.companyName || '',
+        ssmNo: shortData.sn || shortData.ssmNo || '',
+        ssmNoOld: shortData.so || shortData.ssmNoOld || '',
+        template: shortData.t || shortData.template || 'round',
+        color: shortData.c || shortData.color || 'black',
+        email: shortData.e || shortData.email || '',
+        phone: shortData.p || shortData.phone || '',
+        address: [
+          shortData.a1 || shortData.address1 || '',
+          shortData.a2 || shortData.address2 || '',
+          shortData.a3 || shortData.address3 || ''
+        ].filter(addr => addr.trim() !== ''),
+        orderRef: shortData.or || shortData.orderRef || '',
+        timestamp: shortData.ts || shortData.timestamp || Date.now()
+      };
+    }
+    
+    // =============================================
+    // STAMP GENERATION FUNCTIONS
+    // =============================================
+    
+    /**
+     * Generate stamp image from stamp data
      */
     function generateStampImage(stampData) {
-      if (!stampData) return null;
+      if (!stampData) {
+        logDebug('Cannot generate image: No stamp data');
+        return null;
+      }
       
       try {
         const { companyName, ssmNo, template, color, address } = stampData;
         
-        // Create canvas for stamp
+        logDebug('Generating stamp image', { companyName, template, color });
+        
+        // Create canvas
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 800;
+        canvas.width = 1200; // HD resolution
+        canvas.height = 1200;
         const ctx = canvas.getContext('2d');
         
-        // Background
+        // White background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Border color
-        ctx.strokeStyle = color === 'red' ? '#dc2626' : (color === 'blue' ? '#2563eb' : '#000000');
-        ctx.lineWidth = 8;
+        // Determine color
+        let strokeColor = '#000000';
+        if (color === 'red') strokeColor = '#dc2626';
+        if (color === 'blue') strokeColor = '#2563eb';
+        
+        ctx.strokeStyle = strokeColor;
+        ctx.fillStyle = strokeColor;
+        ctx.lineWidth = 12;
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
         
         if (template === 'round') {
           // Round stamp
+          const radius = 450;
           ctx.beginPath();
-          ctx.arc(400, 400, 300, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
           ctx.stroke();
           
-          ctx.fillStyle = ctx.strokeStyle;
-          ctx.font = 'bold 48px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(companyName || 'COMPANY NAME', 400, 400);
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 0.4, 0, Math.PI * 2);
+          ctx.stroke();
           
-          if (ssmNo) {
-            ctx.font = '32px Arial';
-            ctx.fillText(`SSM: ${ssmNo}`, 400, 500);
+          // Company name
+          if (companyName) {
+            ctx.font = 'bold 72px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(companyName.toUpperCase(), centerX, centerY - 50);
           }
-        } else {
+          
+          // SSM number
+          if (ssmNo) {
+            ctx.font = 'bold 48px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(`SSM: ${ssmNo.toUpperCase()}`, centerX, centerY + 50);
+          }
+        } else if (template === 'box' || template === 'info') {
           // Box/Info stamp
-          ctx.strokeRect(100, 100, 600, 600);
+          const boxWidth = 900;
+          const boxHeight = 900;
+          const boxX = (canvas.width - boxWidth) / 2;
+          const boxY = (canvas.height - boxHeight) / 2;
           
-          ctx.fillStyle = ctx.strokeStyle;
-          ctx.font = 'bold 56px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(companyName || 'COMPANY NAME', 400, 250);
+          // Outer border
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
           
-          if (ssmNo) {
-            ctx.font = '36px Arial';
-            ctx.fillText(`SSM: ${ssmNo}`, 400, 350);
+          // Inner border
+          ctx.strokeRect(boxX + 30, boxY + 30, boxWidth - 60, boxHeight - 60);
+          
+          let yPosition = boxY + 150;
+          
+          // Company name
+          if (companyName) {
+            ctx.font = 'bold 84px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(companyName.toUpperCase(), centerX, yPosition);
+            yPosition += 120;
           }
           
-          if (address && address.length > 0) {
-            ctx.font = '28px Arial';
-            address.forEach((line, i) => {
-              if (line) {
-                ctx.fillText(line, 400, 450 + (i * 50));
+          // SSM number
+          if (ssmNo) {
+            ctx.font = 'bold 52px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(`SSM: ${ssmNo.toUpperCase()}`, centerX, yPosition);
+            yPosition += 100;
+          }
+          
+          // Address (for info template)
+          if (template === 'info' && address && address.length > 0) {
+            ctx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
+            address.forEach((line, index) => {
+              if (line && line.trim()) {
+                ctx.fillText(line.toUpperCase(), centerX, yPosition);
+                yPosition += 70;
               }
             });
           }
         }
         
-        // Add watermark
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.1)';
-        ctx.font = 'bold 120px Arial';
+        // Add "PAID" watermark
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.font = 'bold 180px "Segoe UI", Arial, sans-serif';
         ctx.save();
-        ctx.translate(400, 400);
+        ctx.translate(centerX, centerY);
         ctx.rotate(-Math.PI / 6);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         ctx.fillText('PAID', 0, 0);
         ctx.restore();
         
         // Add branding
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.font = '20px Arial';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.font = '24px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText('WebStamp.my | HD Version', 780, 780);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('WebStamp.my | Premium HD Version', canvas.width - 30, canvas.height - 30);
         
+        // Add order reference
+        ctx.textAlign = 'left';
+        ctx.fillText(`Order: ${stampData.orderRef || ''}`, 30, canvas.height - 30);
+        
+        logDebug('✅ Stamp image generated successfully');
         return canvas.toDataURL('image/png');
       } catch (error) {
-        console.error('Error generating stamp:', error);
+        logDebug('❌ Error generating stamp image', error);
         return null;
       }
     }
     
+    /**
+     * Trigger download of stamp image
+     */
+    function downloadStampImage(stampData) {
+      if (!stampData || !stampData.companyName) {
+        logDebug('Cannot download: Invalid stamp data');
+        alert('Error: Stamp data is incomplete. Please contact support.');
+        return false;
+      }
+      
+      const imageData = generateStampImage(stampData);
+      
+      if (!imageData) {
+        logDebug('Image generation failed');
+        alert('Error generating stamp image. Please try again.');
+        return false;
+      }
+      
+      try {
+        const link = document.createElement('a');
+        const fileName = `HD_Stamp_${stampData.companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${stampData.orderRef || Date.now()}.png`;
+        link.download = fileName;
+        link.href = imageData;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+        
+        logDebug(`✅ Download triggered: ${fileName}`);
+        return true;
+      } catch (error) {
+        logDebug('❌ Download error', error);
+        alert('Download failed: ' + error.message);
+        return false;
+      }
+    }
+    
+    /**
+     * Attempt auto-download
+     */
+    function attemptAutoDownload(stampData) {
+      if (autoDownloadAttempted) {
+        logDebug('Auto-download already attempted, skipping');
+        return;
+      }
+      
+      autoDownloadAttempted = true;
+      logDebug('Starting auto-download attempt...');
+      
+      // Update status message
+      const statusMessage = document.getElementById('statusMessage');
+      statusMessage.innerHTML = '🔄 <strong>Generating your HD stamp...</strong><br>Your download will start in 2 seconds.';
+      
+      setTimeout(() => {
+        if (downloadStampImage(stampData)) {
+          statusMessage.innerHTML = '✅ <strong>HD Stamp downloaded!</strong><br>Check your downloads folder.';
+          
+          // Show download instructions
+          setTimeout(() => {
+            const instructions = document.createElement('div');
+            instructions.style.marginTop = '10px';
+            instructions.style.fontSize = '0.9rem';
+            instructions.style.color = '#6b7280';
+            instructions.style.fontStyle = 'italic';
+            
+            const isChrome = /Chrome/.test(navigator.userAgent);
+            const isFirefox = /Firefox/.test(navigator.userAgent);
+            
+            if (isChrome) {
+              instructions.innerHTML = '💡 <strong>Note:</strong> Check the bottom of Chrome or press Ctrl+J';
+            } else if (isFirefox) {
+              instructions.innerHTML = '💡 <strong>Note:</strong> Check downloads panel or press Ctrl+J';
+            } else {
+              instructions.innerHTML = '💡 <strong>Note:</strong> Check your Downloads folder';
+            }
+            
+            statusMessage.appendChild(instructions);
+          }, 1000);
+        } else {
+          statusMessage.innerHTML = '⚠️ <strong>Auto-download failed</strong><br>Please use the "Download HD Stamp Now" button below.';
+        }
+      }, 2000);
+    }
+    
     // =============================================
-    // MAIN PAGE LOGIC
+    // MAIN EXECUTION
     // =============================================
     
     document.addEventListener('DOMContentLoaded', function() {
-      // Show current domain for debugging
-      document.getElementById('currentDomain').textContent = window.location.hostname;
+      console.log('🎯 Payment Status Page Loaded');
       
-      console.log('🔍 Checking payment status...');
-      console.log('GitHub Username:', GITHUB_USERNAME);
-      console.log('Expected Domain:', EXPECTED_DOMAIN);
-      console.log('Current Domain:', window.location.hostname);
+      // Extract data from BCL
+      const { orderRef, status, amount, email, stampData, recoveryMethod } = extractStampDataFromBCL();
       
-      // Get payment data
-      const { orderRef, status, amount, customerEmail, reason, stampData } = getPaymentDataFromURL();
+      // Store globally
+      currentOrderRef = orderRef;
+      currentStampData = stampData;
       
-      // Debug info
-      console.log('Payment Data:', { orderRef, status, amount, hasStampData: !!stampData });
-      
-      // Check if we're on the correct domain
-      if (window.location.hostname !== EXPECTED_DOMAIN) {
-        console.warn(`⚠️ Domain mismatch! Expected: ${EXPECTED_DOMAIN}, Got: ${window.location.hostname}`);
-        console.warn('This will cause LocalStorage issues. Using URL parameters only.');
-      }
+      logDebug('Main execution data', { orderRef, status, hasStampData: !!stampData, recoveryMethod });
       
       // Validate order reference
       if (!orderRef) {
-        showError('No order reference found. Please ensure you completed the payment process.');
+        showError('No order reference found. Please ensure payment was completed.');
         return;
       }
       
       // Update UI
-      updateStatusUI(orderRef, status, amount, customerEmail, reason, stampData);
+      updateStatusUI(orderRef, status, amount, email, stampData, recoveryMethod);
       
-      // Auto-actions
-      if (status === 'success' && stampData) {
-        setTimeout(() => {
-          if (downloadStampImage(stampData, orderRef)) {
-            document.getElementById('statusMessage').textContent = 
-              '✅ HD Stamp downloaded! Check your downloads folder.';
-          }
-        }, 2000);
-      } else if (status === 'success' && !stampData) {
-        document.getElementById('dataWarning').style.display = 'block';
-        document.getElementById('errorActions').style.display = 'block';
-        document.getElementById('successActions').style.display = 'none';
+      // Handle successful payment
+      if (status === 'success') {
+        if (stampData && stampData.companyName) {
+          logDebug('Payment successful with stamp data, proceeding...');
+          
+          // Show company name
+          document.getElementById('statusMessage').innerHTML = 
+            `✅ <strong>Payment Successful!</strong><br>HD stamp for <strong>${stampData.companyName}</strong> is ready.`;
+          
+          // Enable download buttons
+          document.getElementById('successActions').style.display = 'block';
+          
+          // Auto-download attempt
+          setTimeout(() => attemptAutoDownload(stampData), 1500);
+          
+        } else {
+          logDebug('Payment successful but stamp data missing or incomplete');
+          showDataMissingError(orderRef, stampData);
+        }
       }
     });
     
-    function updateStatusUI(orderRef, status, amount, customerEmail, reason, stampData) {
-      // Update basic info
-      document.getElementById('orderRef').textContent = orderRef || 'Not available';
+    // =============================================
+    // UI FUNCTIONS
+    // =============================================
+    
+    function updateStatusUI(orderRef, status, amount, email, stampData, recoveryMethod) {
+      // Update order info
+      document.getElementById('orderRef').textContent = orderRef;
       document.getElementById('amount').textContent = 'RM ' + amount;
       document.getElementById('statusText').textContent = status.toUpperCase();
-      document.getElementById('customerEmail').textContent = customerEmail || 
-        (stampData && stampData.email) || 'Not available';
       
-      // Get UI elements
+      // Determine email to show
+      const displayEmail = email || 
+                          (stampData && stampData.email) || 
+                          'Not available';
+      document.getElementById('customerEmail').textContent = displayEmail;
+      
+      // Status-specific UI
       const statusCard = document.getElementById('statusCard');
       const statusIcon = document.getElementById('statusIcon');
       const statusTitle = document.getElementById('statusTitle');
-      const statusMessage = document.getElementById('statusMessage');
       
-      // Hide all action sections
+      // Hide all actions initially
       document.getElementById('successActions').style.display = 'none';
       document.getElementById('failedActions').style.display = 'none';
       document.getElementById('pendingActions').style.display = 'none';
       document.getElementById('errorActions').style.display = 'none';
+      document.getElementById('dataWarning').style.display = 'none';
       
-      // Apply status-specific styles
       if (status === 'success') {
         statusIcon.textContent = '✅';
         statusIcon.style.color = '#10b981';
         statusIcon.style.animation = 'pulse 2s ease infinite';
         statusTitle.textContent = 'Payment Successful!';
-        statusMessage.textContent = stampData 
-          ? 'Thank you for your purchase. Your HD stamp is ready.'
-          : 'Payment successful, but stamp data not found.';
         statusCard.className = 'status-card success';
-        document.getElementById('successActions').style.display = 'block';
+        
+        // Add recovery method indicator
+        if (debugMode && recoveryMethod) {
+          const recoveryIndicator = document.createElement('div');
+          recoveryIndicator.style.fontSize = '0.8rem';
+          recoveryIndicator.style.color = '#6b7280';
+          recoveryIndicator.style.marginTop = '5px';
+          recoveryIndicator.textContent = `Data source: ${recoveryMethod}`;
+          document.getElementById('statusMessage').appendChild(recoveryIndicator);
+        }
         
       } else if (status === 'failed') {
         statusIcon.textContent = '❌';
         statusIcon.style.color = '#dc2626';
-        statusIcon.style.animation = 'none';
         statusTitle.textContent = 'Payment Failed';
-        statusMessage.textContent = reason 
-          ? `Payment failed: ${reason}` 
-          : 'Your payment was not successful.';
         statusCard.className = 'status-card failed';
         document.getElementById('failedActions').style.display = 'block';
         
       } else {
         statusIcon.textContent = '⏳';
         statusIcon.style.color = '#f59e0b';
-        statusIcon.style.animation = 'bounce 1.5s ease infinite';
-        statusTitle.textContent = 'Payment Processing';
-        statusMessage.textContent = 'Your payment is being processed. Please wait...';
+        statusTitle.textContent = 'Processing Payment';
         statusCard.className = 'status-card pending';
         document.getElementById('pendingActions').style.display = 'block';
-        
-        // Auto-refresh for pending status
-        setTimeout(() => {
-          if (status === 'pending') {
-            checkStatus();
-          }
-        }, 5000);
       }
+    }
+    
+    function showDataMissingError(orderRef, partialData) {
+      logDebug('Showing data missing error');
+      
+      document.getElementById('dataWarning').style.display = 'block';
+      document.getElementById('errorActions').style.display = 'block';
+      document.getElementById('successActions').style.display = 'none';
+      
+      let errorMessage = 'Payment successful but stamp design data was not fully recovered. ';
+      
+      if (partialData && partialData.companyName) {
+        errorMessage += `We found: ${partialData.companyName}. `;
+      }
+      
+      errorMessage += 'Please contact support with your order reference.';
+      
+      document.getElementById('statusMessage').innerHTML = 
+        `⚠️ <strong>${errorMessage}</strong><br>Order: ${orderRef}`;
+    }
+    
+    function showError(message) {
+      document.getElementById('statusIcon').textContent = '❌';
+      document.getElementById('statusIcon').style.color = '#dc2626';
+      document.getElementById('statusTitle').textContent = 'Error';
+      document.getElementById('statusMessage').innerHTML = `<strong>Error:</strong> ${message}`;
+      document.getElementById('statusCard').style.display = 'none';
+      document.getElementById('errorActions').style.display = 'block';
     }
     
     // =============================================
     // ACTION FUNCTIONS
     // =============================================
     
-    function downloadStampImage(stampData, orderRef) {
-      const imageData = generateStampImage(stampData);
-      
-      if (!imageData) {
-        alert('Could not generate stamp image. Please contact support.');
-        return false;
-      }
-      
-      const link = document.createElement('a');
-      link.download = `HD_Stamp_${orderRef}_${Date.now()}.png`;
-      link.href = imageData;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return true;
-    }
-    
     function downloadHDStamp() {
-      const { orderRef, stampData } = getPaymentDataFromURL();
+      logDebug('Manual download triggered by user');
       
-      if (!stampData) {
-        alert('Stamp data not found. Please contact support with your order reference: ' + orderRef);
+      if (!currentStampData) {
+        alert('Stamp data not found. Please contact support with your order reference.');
         return;
       }
       
-      if (downloadStampImage(stampData, orderRef)) {
-        document.getElementById('statusMessage').textContent = 
-          '✅ HD Stamp downloaded! Check your downloads folder.';
+      // Update status message
+      document.getElementById('statusMessage').innerHTML = 
+        '🔄 <strong>Generating your HD stamp...</strong>';
+      
+      if (downloadStampImage(currentStampData)) {
+        document.getElementById('statusMessage').innerHTML = 
+          '✅ <strong>HD Stamp downloaded!</strong><br>Check your downloads folder.';
       }
     }
     
     function sendToEmail() {
-      const { orderRef, customerEmail, stampData } = getPaymentDataFromURL();
-      
-      if (!stampData) {
+      if (!currentStampData) {
         alert('Cannot send email: Stamp data not found.');
         return;
       }
       
-      const email = customerEmail || (stampData && stampData.email);
+      const email = currentStampData.email || document.getElementById('customerEmail').textContent;
       
-      if (email) {
-        alert(`HD stamp would be sent to: ${email}\n\nIn production, this would trigger an email.`);
+      if (email && email !== 'Not available') {
+        const subject = `Your HD Company Stamp - Order ${currentOrderRef}`;
+        const body = `Dear Customer,\n\nThank you for your purchase!\n\nOrder Details:\n- Order Reference: ${currentOrderRef}\n- Company Name: ${currentStampData.companyName || 'N/A'}\n- SSM Number: ${currentStampData.ssmNo || 'N/A'}\n\nYour HD stamp should have downloaded automatically. If not, please visit the download page again.\n\nBest regards,\nWebStamp.my Team`;
+        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        window.open(mailtoLink, '_blank');
       } else {
         alert('No email address found. Please contact support.');
       }
     }
     
     function retryPayment() {
-      const { orderRef, stampData } = getPaymentDataFromURL();
-      
-      if (stampData) {
-        const encodedData = btoa(encodeURIComponent(JSON.stringify(stampData)));
-        window.location.href = `/?retry_order=${orderRef}&data=${encodedData}`;
+      if (currentStampData) {
+        const encodedData = btoa(encodeURIComponent(JSON.stringify(currentStampData)));
+        window.location.href = `/?retry_order=${currentOrderRef}&data=${encodedData}`;
       } else {
         window.location.href = '/';
       }
@@ -644,29 +959,11 @@
     }
     
     function contactSupport() {
-      const { orderRef } = getPaymentDataFromURL();
-      const subject = `Stamp Data Missing - Order ${orderRef}`;
-      const body = `Hello Support,\n\nMy payment was successful but I cannot download my HD stamp.\n\nOrder Reference: ${orderRef}\n\nPlease help!`;
+      const subject = `Stamp Download Issue - Order ${currentOrderRef}`;
+      const body = `Hello WebStamp Support,\n\nI completed payment but cannot download my HD stamp.\n\nOrder Reference: ${currentOrderRef}\n\nPlease help me get my stamp!\n\nThank you.`;
       const mailtoLink = `mailto:support@webstamp.my?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       
       window.open(mailtoLink, '_blank');
-    }
-    
-    function showError(message) {
-      document.getElementById('statusIcon').textContent = '❌';
-      document.getElementById('statusIcon').style.color = '#dc2626';
-      document.getElementById('statusIcon').style.animation = 'none';
-      document.getElementById('statusTitle').textContent = 'Error';
-      document.getElementById('statusMessage').textContent = message;
-      document.getElementById('statusCard').style.display = 'none';
-      document.getElementById('errorActions').style.display = 'block';
-    }
-    
-    // Debug: Log all URL parameters
-    console.log('All URL Parameters:');
-    const urlParams = new URLSearchParams(window.location.search);
-    for (const [key, value] of urlParams) {
-      console.log(`  ${key}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
     }
   </script>
 </body>
