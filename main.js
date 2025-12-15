@@ -437,7 +437,7 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
   const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
   const orderRef = `WEBCOP_${timestamp}_${shortHash}`;
   
-  // Save stamp data to localStorage
+  // Save stamp data to localStorage (for local use)
   const stampData = {
     orderRef: orderRef,
     email: billingEmail,
@@ -450,30 +450,35 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
     hdPaid: false
   };
   
+  localStorage.setItem(orderRef, JSON.stringify(stampData));
+  localStorage.setItem('lastOrderRef', orderRef);
+  
+  // Prepare stamp data to pass via URL
   const stampDataString = JSON.stringify(stampData);
-  const encodedStampData = btoa(encodeURIComponent(stampDataString)); // Base64 encode
-  // Redirect to BCL form WITHOUT return_url parameter
-  // BCL will use the pre-configured URLs from your dashboard
+  
+  // IMPORTANT: BCL expects a return_url parameter
+  // This should be configured in your BCL dashboard, but we can pass it too
   const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
   
   const redirectParams = new URLSearchParams({
-    // These parameters will be available in the receipt page
+    // Payment parameters
     'order_ref': orderRef,
     'customer_email': billingEmail,
     'customer_name': d.companyName.substring(0, 50) || 'Customer',
     'product': `HD Company Chop - ${d.companyName.substring(0, 30) || 'Stamp'}`,
     'amount': '3.00',
-    'currency': 'MYR'
-
-     'stamp_data': encodedStampData,
-    'stamp_template': d.template || 'round',
-    'stamp_color': d.color || 'black',
-    'stamp_company': encodeURIComponent(d.companyName || ''),
-    'stamp_ssm': encodeURIComponent(d.ssmNo || '')
+    'currency': 'MYR',
+    
+    // IMPORTANT: Pass the stamp data as a URL parameter
+    // BCL will include this in the redirect to your success page
+    'stamp_data': encodeURIComponent(stampDataString),
+    
+    // Return URL that BCL should redirect to after payment
+    // Use your GitHub Pages URL
+    'return_url': `https://hakimimazeri.github.io/success.html?order_ref=${orderRef}&stamp_data=${encodeURIComponent(stampDataString)}`
   });
   
   console.log('Redirecting to BCL payment form...');
   window.location.href = `${baseUrl}?${redirectParams.toString()}`;
 });
 });
-
