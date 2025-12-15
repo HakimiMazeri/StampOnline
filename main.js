@@ -435,9 +435,9 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
   // Create unique order reference
   const timestamp = Date.now();
   const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const orderRef = `WEBCOP_${timestamp}_${shortHash}`;
+  const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
   
-  // Save stamp data to localStorage (for local use)
+  // Create stamp data
   const stampData = {
     orderRef: orderRef,
     email: billingEmail,
@@ -446,39 +446,42 @@ document.getElementById('btn-download-hd').addEventListener('click', function() 
     template: d.template,
     color: d.color,
     address: d.address,
-    timestamp: timestamp,
-    hdPaid: false
+    timestamp: timestamp
   };
   
-  localStorage.setItem(orderRef, JSON.stringify(stampData));
-  localStorage.setItem('lastOrderRef', orderRef);
-  
-  // Prepare stamp data to pass via URL
+  // Method 1: URL Parameter Encoding (Primary)
   const stampDataString = JSON.stringify(stampData);
+  const encodedData = btoa(encodeURIComponent(stampDataString));
   
-  // IMPORTANT: BCL expects a return_url parameter
-  // This should be configured in your BCL dashboard, but we can pass it too
+  // Method 2: SessionStorage with unique ID (Backup)
+  const sessionId = `stamp_${Date.now()}`;
+  sessionStorage.setItem(sessionId, stampDataString);
+  
+  // Your GitHub username (CORRECT THIS!)
+  const githubUsername = 'hakimimazeri'; // CHANGE TO YOUR ACTUAL USERNAME
+  
+  // Create return URL with BOTH methods
+  const returnUrl = `https://${githubUsername}.github.io/success.html?order_ref=${orderRef}&data=${encodedData}&session_id=${sessionId}`;
+  
+  console.log('Preparing BCL redirect with:', {
+    orderRef: orderRef,
+    returnUrl: returnUrl,
+    dataLength: encodedData.length
+  });
+  
+  // Redirect to BCL
   const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
   
   const redirectParams = new URLSearchParams({
-    // Payment parameters
     'order_ref': orderRef,
     'customer_email': billingEmail,
     'customer_name': d.companyName.substring(0, 50) || 'Customer',
-    'product': `HD Company Chop - ${d.companyName.substring(0, 30) || 'Stamp'}`,
+    'product': `HD Company Stamp - ${d.companyName.substring(0, 30) || 'Custom Stamp'}`,
     'amount': '3.00',
     'currency': 'MYR',
-    
-    // IMPORTANT: Pass the stamp data as a URL parameter
-    // BCL will include this in the redirect to your success page
-    'stamp_data': encodeURIComponent(stampDataString),
-    
-    // Return URL that BCL should redirect to after payment
-    // Use your GitHub Pages URL
-    'return_url': `https://hakimimazeri.github.io/success.html?order_ref=${orderRef}&stamp_data=${encodeURIComponent(stampDataString)}`
+    'return_url': returnUrl
   });
   
-  console.log('Redirecting to BCL payment form...');
   window.location.href = `${baseUrl}?${redirectParams.toString()}`;
 });
 });
