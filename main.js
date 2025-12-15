@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function boxStamp(d, tc, ff) {
-    const cx = 180;
+    const startX = 30;
     const lines = [];
 
     if (d.companyName) lines.push({
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
+      const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function infoStamp(d, tc, ff) {
-    const cx = 180;
+    const startX = 30;
     const lines = [];
 
     if (d.companyName) lines.push({
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
+      const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -248,7 +248,6 @@ document.addEventListener('DOMContentLoaded', function () {
     previewHost.innerHTML = [
       '<div id="stamp-preview-wrapper" style="position:relative;display:inline-block;padding:16px;background:#F7F9FA;border-radius:8px;overflow:hidden;">',
       svg,
-      '<div aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:56px;font-weight:900;letter-spacing:6px;text-transform:uppercase;transform:rotate(-22deg);color:rgba(0,0,0,0.22);text-shadow:0 0 2px rgba(255,255,255,0.6), 0 0 8px rgba(255,255,255,0.35);user-select:none;">PREVIEW</div>',
       '<div aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:42px;font-weight:800;letter-spacing:4px;text-transform:uppercase;transform:rotate(18deg);color:rgba(0,0,0,0.12);user-select:none;">WATERMARK</div>',
       '</div>'
     ].join('');
@@ -360,9 +359,8 @@ document.addEventListener('DOMContentLoaded', function () {
           // HD paid version - clean
           ctx.font = '10px Arial';
           ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText('WebStamp.my | BCL', canvas.width - 5, canvas.height - 5);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
         }
         
         // Convert canvas to data URL and download
