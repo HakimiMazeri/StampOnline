@@ -649,28 +649,6 @@
           }
         }
         
-        // Add "PAID" watermark
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
-        ctx.font = 'bold 180px "Segoe UI", Arial, sans-serif';
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(-Math.PI / 6);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('PAID', 0, 0);
-        ctx.restore();
-        
-        // Add branding
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.font = '24px "Segoe UI", Arial, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText('WebStamp.my | Premium HD Version', canvas.width - 30, canvas.height - 30);
-        
-        // Add order reference
-        ctx.textAlign = 'left';
-        ctx.fillText(`Order: ${stampData.orderRef || ''}`, 30, canvas.height - 30);
-        
         logDebug('✅ Stamp image generated successfully');
         return canvas.toDataURL('image/png');
       } catch (error) {
