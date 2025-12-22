@@ -542,272 +542,162 @@
     }
     
     // =============================================
-    // STAMP GENERATION FUNCTIONS (SAME AS MAIN.JS)
+    // STAMP GENERATION FUNCTIONS
     // =============================================
     
     /**
-     * Get text color - SAME AS MAIN.JS
+     * Generate stamp image from stamp data
      */
-    function getTextColorHD(c) {
-      if (c === 'red') return '#D33';
-      if (c === 'blue') return '#1565C0';
-      return '#1F2D3D';
-    }
-    
-    /**
-     * Box stamp - SAME AS MAIN.JS (left-aligned)
-     */
-    function boxStampHD(d, tc, ff) {
-      const startX = 30;
-      const lines = [];
-
-      if (d.companyName) lines.push({
-        text: d.companyName.toUpperCase(),
-        size: 22,
-        weight: 700
-      });
-      if (d.ssmNo) lines.push({
-        text: d.ssmNo.toUpperCase(),
-        size: 14,
-        weight: 600,
-        extraGap: 8
-      });
-      (d.address || []).forEach(line => {
-        if (line) lines.push({
-          text: line.toUpperCase(),
-          size: 13,
-          weight: 500
-        });
-      });
-
-      const totalHeight = lines.length * 20 + lines.reduce((acc, l) => acc + (l.extraGap || 0), 0);
-      const startY = (220 - totalHeight) / 2 + 20;
-
-      let y = startY;
-      const svgLines = lines.map(l => {
-        const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
-        y += 20 + (l.extraGap || 0);
-        return out;
-      }).join('');
-
-      return `
-        <svg width="320" height="200" viewBox="0 0 360 220" role="img" aria-label="Box stamp">
-          <rect x="8" y="8" width="344" height="204" stroke="${tc}" stroke-width="3" fill="none" rx="4" />
-          ${svgLines}
-        </svg>
-      `;
-    }
-    
-    /**
-     * Info stamp - SAME AS MAIN.JS (left-aligned)
-     */
-    function infoStampHD(d, tc, ff) {
-      const startX = 30;
-      const lines = [];
-
-      if (d.companyName) lines.push({
-        text: d.companyName.toUpperCase(),
-        size: 22,
-        weight: 700
-      });
-      if (d.ssmNo) lines.push({
-        text: d.ssmNo.toUpperCase(),
-        size: 14,
-        weight: 600,
-        extraGap: 8
-      });
-      (d.address || []).forEach(line => {
-        if (line) lines.push({
-          text: line.toUpperCase(),
-          size: 13,
-          weight: 500
-        });
-      });
-      if (d.phone) lines.push({
-        text: d.phone,
-        size: 13,
-        weight: 500,
-        extraGap: 8
-      });
-      if (d.email) lines.push({
-        text: d.email.toLowerCase(),
-        size: 13,
-        weight: 500
-      });
-
-      const totalHeight = lines.length * 20 + lines.reduce((acc, l) => acc + (l.extraGap || 0), 0);
-      const startY = (260 - totalHeight) / 2 + 20;
-
-      let y = startY;
-      const svgLines = lines.map(l => {
-        const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
-        y += 20 + (l.extraGap || 0);
-        return out;
-      }).join('');
-
-      return `
-        <svg width="320" height="260" viewBox="0 0 360 260" role="img" aria-label="Info stamp">
-          <rect x="8" y="8" width="344" height="244" stroke="${tc}" stroke-width="3" fill="none" rx="4" />
-          ${svgLines}
-        </svg>
-      `;
-    }
-    
-    /**
-     * Round stamp - SAME AS MAIN.JS
-     */
-    function roundStampHD(d, tc, ff) {
-      const text = (d.companyName || '').toUpperCase();
-      const cx = 140,
-            cy = 140,
-            R = 80,
-            step = 10;
-
-      let chars = '';
-      const total = (text.length ? text.length - 1 : 0) * step,
-            start = -total / 2;
-
-      function pol(cx, cy, r, a) {
-        const rad = (a - 90) * Math.PI / 180;
-        return {
-          x: cx + r * Math.cos(rad),
-          y: cy + r * Math.sin(rad)
-        };
-      }
-      
-      for (let i = 0; i < text.length; i++) {
-        const ang = start + i * step,
-              p = pol(cx, cy, R, ang);
-        chars += `<text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>`;
-      }
-
-      let mid = '';
-      if (d.ssmNo) {
-        mid += `<text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNo.toUpperCase()}</text>`;
-      }
-      if (d.ssmNoOld) {
-        mid += `<text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>`;
-      }
-
-      return `
-        <svg width="280" height="280" viewBox="0 0 280 280" role="img">
-          <circle cx="${cx}" cy="${cy}" r="110" stroke="${tc}" stroke-width="6" fill="none" />
-          ${chars}
-          <circle cx="${cx}" cy="${cy}" r="50" stroke="${tc}" stroke-width="2" fill="none" />
-          ${mid}
-        </svg>
-      `;
-    }
-    
-    /**
-     * Build SVG - SAME LOGIC AS MAIN.JS
-     */
-    function buildSVGHD(d, tc, ff) {
-      if (d.template === 'box') return boxStampHD(d, tc, ff);
-      if (d.template === 'info') return infoStampHD(d, tc, ff);
-      return roundStampHD(d, tc, ff);
-    }
-    
-    /**
-     * Generate stamp image from stamp data - USING SAME LOGIC AS MAIN.JS
-     */
-    async function generateStampImage(stampData) {
+    function generateStampImage(stampData) {
       if (!stampData) {
         logDebug('Cannot generate image: No stamp data');
         return null;
       }
       
       try {
-        // Use the SAME stamp generation functions as main.js
-        const tc = getTextColorHD(stampData.color || 'black');
-        const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        const svgString = buildSVGHD(stampData, tc, ff);
+        const { companyName, ssmNo, template, color, address } = stampData;
         
-        logDebug('Generating stamp image', { 
-          companyName: stampData.companyName, 
-          template: stampData.template, 
-          color: stampData.color 
-        });
+        logDebug('Generating stamp image', { companyName, template, color });
         
-        // Create canvas with HD resolution (3x scale)
+        // Create canvas
         const canvas = document.createElement('canvas');
-        const scale = 3; // HD scale
-        
-        // Parse SVG dimensions
-        const widthMatch = svgString.match(/width="(\d+)"/);
-        const heightMatch = svgString.match(/height="(\d+)"/);
-        const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
-        
-        let svgWidth = 280; // default
-        let svgHeight = 280; // default
-        
-        if (widthMatch && heightMatch) {
-          svgWidth = parseInt(widthMatch[1]);
-          svgHeight = parseInt(heightMatch[1]);
-        } else if (viewBoxMatch) {
-          const viewBox = viewBoxMatch[1].split(' ');
-          svgWidth = parseInt(viewBox[2]);
-          svgHeight = parseInt(viewBox[3]);
-        }
-        
-        canvas.width = svgWidth * scale;
-        canvas.height = svgHeight * scale;
+        canvas.width = 1200; // HD resolution
+        canvas.height = 1200;
         const ctx = canvas.getContext('2d');
         
         // White background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Create image from SVG
-        const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
-        const url = URL.createObjectURL(svgBlob);
+        // Determine color
+        let strokeColor = '#000000';
+        if (color === 'red') strokeColor = '#dc2626';
+        if (color === 'blue') strokeColor = '#2563eb';
         
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = function() {
-            // Draw the SVG image
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            // Clean up
-            URL.revokeObjectURL(url);
-            
-            // Return data URL
-            resolve(canvas.toDataURL('image/png'));
-          };
-          
-          img.onerror = function() {
-            URL.revokeObjectURL(url);
-            reject(new Error('Failed to load SVG image'));
-          };
-          
-          img.src = url;
-        });
+        ctx.strokeStyle = strokeColor;
+        ctx.fillStyle = strokeColor;
+        ctx.lineWidth = 12;
         
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        if (template === 'round') {
+          // Round stamp
+          const radius = 450;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 0.4, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Company name
+          if (companyName) {
+            ctx.font = 'bold 72px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(companyName.toUpperCase(), centerX, centerY - 50);
+          }
+          
+          // SSM number
+          if (ssmNo) {
+            ctx.font = 'bold 48px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(`SSM: ${ssmNo.toUpperCase()}`, centerX, centerY + 50);
+          }
+        } else if (template === 'box' || template === 'info') {
+          // Box/Info stamp
+          const boxWidth = 900;
+          const boxHeight = 900;
+          const boxX = (canvas.width - boxWidth) / 2;
+          const boxY = (canvas.height - boxHeight) / 2;
+          
+          // Outer border
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+          
+          // Inner border
+          ctx.strokeRect(boxX + 30, boxY + 30, boxWidth - 60, boxHeight - 60);
+          
+          let yPosition = boxY + 150;
+          
+          // Company name
+          if (companyName) {
+            ctx.font = 'bold 84px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(companyName.toUpperCase(), centerX, yPosition);
+            yPosition += 120;
+          }
+          
+          // SSM number
+          if (ssmNo) {
+            ctx.font = 'bold 52px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(`SSM: ${ssmNo.toUpperCase()}`, centerX, yPosition);
+            yPosition += 100;
+          }
+          
+          // Address (for info template)
+          if (template === 'info' && address && address.length > 0) {
+            ctx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
+            address.forEach((line, index) => {
+              if (line && line.trim()) {
+                ctx.fillText(line.toUpperCase(), centerX, yPosition);
+                yPosition += 70;
+              }
+            });
+          }
+        }
+        
+        // Add "PAID" watermark
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.font = 'bold 180px "Segoe UI", Arial, sans-serif';
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(-Math.PI / 6);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PAID', 0, 0);
+        ctx.restore();
+        
+        // Add branding
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.font = '24px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('WebStamp.my | Premium HD Version', canvas.width - 30, canvas.height - 30);
+        
+        // Add order reference
+        ctx.textAlign = 'left';
+        ctx.fillText(`Order: ${stampData.orderRef || ''}`, 30, canvas.height - 30);
+        
+        logDebug('✅ Stamp image generated successfully');
+        return canvas.toDataURL('image/png');
       } catch (error) {
         logDebug('❌ Error generating stamp image', error);
-        throw error;
+        return null;
       }
     }
     
     /**
      * Trigger download of stamp image
      */
-    async function downloadStampImage(stampData) {
+    function downloadStampImage(stampData) {
       if (!stampData || !stampData.companyName) {
         logDebug('Cannot download: Invalid stamp data');
         alert('Error: Stamp data is incomplete. Please contact support.');
         return false;
       }
       
+      const imageData = generateStampImage(stampData);
+      
+      if (!imageData) {
+        logDebug('Image generation failed');
+        alert('Error generating stamp image. Please try again.');
+        return false;
+      }
+      
       try {
-        const imageData = await generateStampImage(stampData);
-        
-        if (!imageData) {
-          logDebug('Image generation failed');
-          alert('Error generating stamp image. Please try again.');
-          return false;
-        }
-        
         const link = document.createElement('a');
         const fileName = `HD_Stamp_${stampData.companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${stampData.orderRef || Date.now()}.png`;
         link.download = fileName;
@@ -823,7 +713,6 @@
         
         logDebug(`✅ Download triggered: ${fileName}`);
         return true;
-        
       } catch (error) {
         logDebug('❌ Download error', error);
         alert('Download failed: ' + error.message);
@@ -834,7 +723,7 @@
     /**
      * Attempt auto-download
      */
-    async function attemptAutoDownload(stampData) {
+    function attemptAutoDownload(stampData) {
       if (autoDownloadAttempted) {
         logDebug('Auto-download already attempted, skipping');
         return;
@@ -847,8 +736,8 @@
       const statusMessage = document.getElementById('statusMessage');
       statusMessage.innerHTML = '🔄 <strong>Generating your HD stamp...</strong><br>Your download will start in 2 seconds.';
       
-      setTimeout(async () => {
-        if (await downloadStampImage(stampData)) {
+      setTimeout(() => {
+        if (downloadStampImage(stampData)) {
           statusMessage.innerHTML = '✅ <strong>HD Stamp downloaded!</strong><br>Check your downloads folder.';
           
           // Show download instructions
@@ -1018,7 +907,7 @@
     // ACTION FUNCTIONS
     // =============================================
     
-    async function downloadHDStamp() {
+    function downloadHDStamp() {
       logDebug('Manual download triggered by user');
       
       if (!currentStampData) {
@@ -1030,7 +919,7 @@
       document.getElementById('statusMessage').innerHTML = 
         '🔄 <strong>Generating your HD stamp...</strong>';
       
-      if (await downloadStampImage(currentStampData)) {
+      if (downloadStampImage(currentStampData)) {
         document.getElementById('statusMessage').innerHTML = 
           '✅ <strong>HD Stamp downloaded!</strong><br>Check your downloads folder.';
       }
