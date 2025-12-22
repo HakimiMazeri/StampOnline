@@ -95,9 +95,21 @@
       transform: translateY(-2px);
     }
     
+    .btn-physical {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    
+    .btn-physical:hover {
+      background-color: #7c3aed;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+    }
+    
     .status-success { color: #10b981; }
     .status-failed { color: #dc2626; }
     .status-pending { color: #f59e0b; }
+    .status-physical { color: #8b5cf6; }
     
     .status-card {
       background: #f8fafc;
@@ -122,6 +134,11 @@
     .status-card.pending { 
       border-left-color: #f59e0b; 
       background: #fffbeb;
+    }
+    
+    .status-card.physical { 
+      border-left-color: #8b5cf6; 
+      background: #f5f3ff;
     }
     
     .detail-item {
@@ -200,6 +217,15 @@
     
     .debug-toggle:hover {
       background: #f3f4f6;
+    }
+    
+    .shipping-info {
+      background: #f0f9ff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: left;
+      border: 1px solid #bae6fd;
     }
     
     @keyframes bounce {
@@ -284,7 +310,23 @@
       </div>
     </div>
     
-    <!-- Success actions -->
+    <!-- Shipping Info (for physical stamps) -->
+    <div id="shippingInfo" class="shipping-info" style="display: none;">
+      <h3 style="margin-top: 0; color: #1e40af;">Shipping Details</h3>
+      <div class="detail-item">
+        <span>Shipping Address:</span>
+        <span id="shippingAddress">Loading...</span>
+      </div>
+      <div class="detail-item">
+        <span>Contact Phone:</span>
+        <span id="shippingPhone">Loading...</span>
+      </div>
+      <div style="margin-top: 1rem; padding: 0.75rem; background: #dcfce7; border-radius: 6px; font-size: 0.9rem;">
+        ✅ Your physical stamp will be shipped within 3-5 working days.
+      </div>
+    </div>
+    
+    <!-- Success actions (Digital HD) -->
     <div id="successActions" style="display: none;">
       <button onclick="downloadHDStamp()" class="btn btn-primary">
         ⬇️ Download HD Stamp Now
@@ -295,6 +337,22 @@
       <a href="/" class="btn" style="background: #9ca3af; color: white;">
         ← Back to Home
       </a>
+    </div>
+    
+    <!-- Success actions (Physical Stamp) -->
+    <div id="physicalSuccessActions" style="display: none;">
+      <button onclick="sendOrderConfirmation()" class="btn btn-physical">
+        📧 Resend Order Confirmation
+      </button>
+      <button onclick="contactSupport()" class="btn btn-secondary">
+        📞 Contact Support
+      </button>
+      <a href="/" class="btn" style="background: #9ca3af; color: white;">
+        ← Back to Home
+      </a>
+      <div style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280;">
+        Need to update shipping address? Contact support immediately.
+      </div>
     </div>
     
     <!-- Failed actions -->
@@ -451,7 +509,8 @@
             logDebug('Successfully decoded data from email', {
               companyName: stampData.cn,
               template: stampData.t,
-              color: stampData.c
+              color: stampData.c,
+              type: stampData.type || 'digital'
             });
           } catch (decodeError) {
             logDebug('Failed to decode email data', decodeError.message);
@@ -523,22 +582,42 @@
     function expandStampData(shortData) {
       if (!shortData) return null;
       
-      return {
+      const expandedData = {
+        // Company details
         companyName: shortData.cn || shortData.companyName || '',
         ssmNo: shortData.sn || shortData.ssmNo || '',
         ssmNoOld: shortData.so || shortData.ssmNoOld || '',
+        
+        // Design details
         template: shortData.t || shortData.template || 'round',
         color: shortData.c || shortData.color || 'black',
+        
+        // Contact details
         email: shortData.e || shortData.email || '',
         phone: shortData.p || shortData.phone || '',
+        
+        // SHIPPING ADDRESS (expanded from a1, a2, a3)
         address: [
           shortData.a1 || shortData.address1 || '',
           shortData.a2 || shortData.address2 || '',
           shortData.a3 || shortData.address3 || ''
         ].filter(addr => addr.trim() !== ''),
+        
+        // Additional email
+        stampEmail: shortData.em || shortData.stampEmail || '',
+        
+        // Order metadata
         orderRef: shortData.or || shortData.orderRef || '',
-        timestamp: shortData.ts || shortData.timestamp || Date.now()
+        timestamp: shortData.ts || shortData.timestamp || Date.now(),
+        type: shortData.type || 'digital' // Default to digital if not specified
       };
+      
+      // Check if this is a physical stamp order
+      if (shortData.or && shortData.or.startsWith('PHYSICAL_')) {
+        expandedData.type = 'physical';
+      }
+      
+      return expandedData;
     }
     
     // =============================================
@@ -879,6 +958,207 @@
     }
     
     // =============================================
+    // PHYSICAL STAMP FUNCTIONS
+    // =============================================
+    
+    /**
+     * Check if this is a physical stamp order
+     */
+    function isPhysicalStampOrder(stampData) {
+      return stampData.type === 'physical' || 
+             (stampData.orderRef && stampData.orderRef.startsWith('PHYSICAL_')) ||
+             (currentOrderRef && currentOrderRef.startsWith('PHYSICAL_'));
+    }
+    
+    /**
+     * Show physical stamp success UI
+     */
+    function showPhysicalStampSuccess(stampData) {
+      logDebug('🖨️ Showing physical stamp success UI');
+      
+      // Update UI for physical stamp
+      const statusIcon = document.getElementById('statusIcon');
+      const statusTitle = document.getElementById('statusTitle');
+      const statusMessage = document.getElementById('statusMessage');
+      const statusCard = document.getElementById('statusCard');
+      
+      statusIcon.textContent = '🖨️';
+      statusIcon.style.color = '#8b5cf6';
+      statusIcon.style.animation = 'pulse 2s ease infinite';
+      statusTitle.textContent = 'Physical Stamp Ordered!';
+      statusCard.className = 'status-card physical';
+      
+      // Show shipping info
+      const shippingInfo = document.getElementById('shippingInfo');
+      const shippingAddress = document.getElementById('shippingAddress');
+      const shippingPhone = document.getElementById('shippingPhone');
+      
+      if (stampData.address && stampData.address.length > 0) {
+        shippingAddress.textContent = stampData.address.filter(addr => addr && addr.trim() !== '').join(', ');
+        shippingInfo.style.display = 'block';
+      }
+      
+      if (stampData.phone) {
+        shippingPhone.textContent = stampData.phone;
+      }
+      
+      // Update status message
+      statusMessage.innerHTML = `
+        ✅ <strong>Payment Successful!</strong><br>
+        Your physical company stamp has been ordered and will be shipped to the address above.
+        
+        <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; text-align: left;">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">Order Details:</div>
+          <div><strong>Company:</strong> ${stampData.companyName || 'N/A'}</div>
+          <div><strong>Template:</strong> ${stampData.template || 'round'}</div>
+          <div><strong>Color:</strong> ${stampData.color || 'black'}</div>
+          <div><strong>Order Reference:</strong> ${stampData.orderRef || currentOrderRef}</div>
+        </div>
+        
+        <p style="margin-top: 1rem; color: #6b7280; font-size: 0.9rem;">
+          Your stamp will be manufactured and shipped within 3-5 working days.<br>
+          Tracking information will be sent to your email.
+        </p>
+      `;
+      
+      // Hide digital actions, show physical actions
+      document.getElementById('successActions').style.display = 'none';
+      document.getElementById('physicalSuccessActions').style.display = 'block';
+      document.getElementById('failedActions').style.display = 'none';
+      document.getElementById('pendingActions').style.display = 'none';
+      document.getElementById('errorActions').style.display = 'none';
+      
+      // Submit order notification (simple backendless solution)
+      submitPhysicalStampOrder(stampData);
+    }
+    
+    /**
+     * Submit physical stamp order for processing
+     */
+    function submitPhysicalStampOrder(stampData) {
+      // Create order summary
+      const addressLines = stampData.address || [];
+      const fullAddress = addressLines.filter(line => line && line.trim() !== '').join('\n');
+      
+      const orderSummary = `
+NEW PHYSICAL STAMP ORDER
+========================
+Order Reference: ${stampData.orderRef || currentOrderRef}
+Date: ${new Date().toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
+Payment Amount: RM ${document.getElementById('amount').textContent.replace('RM ', '')}
+
+COMPANY DETAILS
+---------------
+Company Name: ${stampData.companyName || 'N/A'}
+SSM Number (New): ${stampData.ssmNo || 'N/A'}
+SSM Number (Old): ${stampData.ssmNoOld || 'N/A'}
+
+STAMP DESIGN
+------------
+Template: ${stampData.template || 'round'}
+Color: ${stampData.color || 'black'}
+
+SHIPPING DETAILS
+----------------
+Contact Email: ${stampData.email || document.getElementById('customerEmail').textContent}
+Contact Phone: ${stampData.phone || 'N/A'}
+
+Shipping Address:
+${fullAddress || 'N/A'}
+
+ADDITIONAL INFO
+---------------
+Email on Stamp: ${stampData.stampEmail || 'N/A'}
+
+ORDER METADATA
+--------------
+Timestamp: ${stampData.timestamp || Date.now()}
+Order Type: Physical Stamp
+Recovery Method: ${recoveryMethod || 'email_encoding'}
+      `.trim();
+      
+      console.log('📦 Physical stamp order summary:', orderSummary);
+      
+      // Save order to localStorage as backup
+      try {
+        const orders = JSON.parse(localStorage.getItem('webstamp_physical_orders') || '[]');
+        orders.push({
+          ...stampData,
+          orderDate: new Date().toISOString(),
+          status: 'paid',
+          notificationSent: false
+        });
+        localStorage.setItem('webstamp_physical_orders', JSON.stringify(orders));
+        logDebug('Order saved to localStorage');
+      } catch (error) {
+        logDebug('Error saving to localStorage:', error);
+      }
+      
+      // Optional: Auto-send email notification
+      setTimeout(() => {
+        if (confirm('Would you like to send an order confirmation email to yourself?')) {
+          sendOrderConfirmation();
+        }
+      }, 2000);
+    }
+    
+    /**
+     * Send order confirmation email
+     */
+    function sendOrderConfirmation() {
+      if (!currentStampData) {
+        alert('Cannot send confirmation: Stamp data not found.');
+        return;
+      }
+      
+      const email = currentStampData.email || document.getElementById('customerEmail').textContent;
+      const orderRef = currentStampData.orderRef || currentOrderRef;
+      const addressLines = currentStampData.address || [];
+      const fullAddress = addressLines.filter(line => line && line.trim() !== '').join('\n');
+      
+      const isPhysical = isPhysicalStampOrder(currentStampData);
+      const productType = isPhysical ? 'Physical Stamp' : 'HD Digital Stamp';
+      
+      const subject = `${productType} Order Confirmation - ${orderRef}`;
+      const body = `Dear Customer,
+
+Thank you for your order with WebStamp.my!
+
+ORDER DETAILS:
+-------------
+Order Reference: ${orderRef}
+Order Date: ${new Date().toLocaleDateString('en-MY')}
+Order Type: ${productType}
+Company Name: ${currentStampData.companyName || 'N/A'}
+SSM Number: ${currentStampData.ssmNo || 'N/A'}
+
+${isPhysical ? `
+SHIPPING DETAILS:
+-----------------
+Shipping Address:
+${fullAddress || 'N/A'}
+Contact Phone: ${currentStampData.phone || 'N/A'}
+
+Your physical stamp will be manufactured and shipped within 3-5 working days.
+Tracking information will be sent to this email once shipped.
+` : `
+DOWNLOAD DETAILS:
+----------------
+Your HD digital stamp is ready for download. 
+If you haven't already downloaded it, please use the "Download HD Stamp Now" button.
+`}
+
+If you have any questions, please contact support@webstamp.my with your order reference.
+
+Best regards,
+WebStamp.my Team
+      `.trim();
+      
+      const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoLink, '_blank');
+    }
+    
+    // =============================================
     // MAIN EXECUTION
     // =============================================
     
@@ -892,7 +1172,13 @@
       currentOrderRef = orderRef;
       currentStampData = stampData;
       
-      logDebug('Main execution data', { orderRef, status, hasStampData: !!stampData, recoveryMethod });
+      logDebug('Main execution data', { 
+        orderRef, 
+        status, 
+        hasStampData: !!stampData, 
+        recoveryMethod,
+        orderType: stampData?.type || 'unknown'
+      });
       
       // Validate order reference
       if (!orderRef) {
@@ -906,18 +1192,23 @@
       // Handle successful payment
       if (status === 'success') {
         if (stampData && stampData.companyName) {
-          logDebug('Payment successful with stamp data, proceeding...');
-          
-          // Show company name
-          document.getElementById('statusMessage').innerHTML = 
-            `✅ <strong>Payment Successful!</strong><br>HD stamp for <strong>${stampData.companyName}</strong> is ready.`;
-          
-          // Enable download buttons
-          document.getElementById('successActions').style.display = 'block';
-          
-          // Auto-download attempt
-          setTimeout(() => attemptAutoDownload(stampData), 1500);
-          
+          // CHECK IF THIS IS A PHYSICAL STAMP ORDER
+          if (isPhysicalStampOrder(stampData)) {
+            logDebug('Physical stamp order detected');
+            showPhysicalStampSuccess(stampData);
+          } else {
+            logDebug('Digital HD stamp order detected');
+            
+            // Show company name
+            document.getElementById('statusMessage').innerHTML = 
+              `✅ <strong>Payment Successful!</strong><br>HD stamp for <strong>${stampData.companyName}</strong> is ready.`;
+            
+            // Enable download buttons
+            document.getElementById('successActions').style.display = 'block';
+            
+            // Auto-download attempt
+            setTimeout(() => attemptAutoDownload(stampData), 1500);
+          }
         } else {
           logDebug('Payment successful but stamp data missing or incomplete');
           showDataMissingError(orderRef, stampData);
@@ -948,17 +1239,26 @@
       
       // Hide all actions initially
       document.getElementById('successActions').style.display = 'none';
+      document.getElementById('physicalSuccessActions').style.display = 'none';
       document.getElementById('failedActions').style.display = 'none';
       document.getElementById('pendingActions').style.display = 'none';
       document.getElementById('errorActions').style.display = 'none';
       document.getElementById('dataWarning').style.display = 'none';
+      document.getElementById('shippingInfo').style.display = 'none';
       
       if (status === 'success') {
-        statusIcon.textContent = '✅';
-        statusIcon.style.color = '#10b981';
+        if (stampData && isPhysicalStampOrder(stampData)) {
+          statusIcon.textContent = '🖨️';
+          statusIcon.style.color = '#8b5cf6';
+          statusTitle.textContent = 'Physical Stamp Ordered!';
+          statusCard.className = 'status-card physical';
+        } else {
+          statusIcon.textContent = '✅';
+          statusIcon.style.color = '#10b981';
+          statusTitle.textContent = 'Payment Successful!';
+          statusCard.className = 'status-card success';
+        }
         statusIcon.style.animation = 'pulse 2s ease infinite';
-        statusTitle.textContent = 'Payment Successful!';
-        statusCard.className = 'status-card success';
         
         // Add recovery method indicator
         if (debugMode && recoveryMethod) {
@@ -992,6 +1292,7 @@
       document.getElementById('dataWarning').style.display = 'block';
       document.getElementById('errorActions').style.display = 'block';
       document.getElementById('successActions').style.display = 'none';
+      document.getElementById('physicalSuccessActions').style.display = 'none';
       
       let errorMessage = 'Payment successful but stamp design data was not fully recovered. ';
       
@@ -1070,8 +1371,8 @@
     }
     
     function contactSupport() {
-      const subject = `Stamp Download Issue - Order ${currentOrderRef}`;
-      const body = `Hello WebStamp Support,\n\nI completed payment but cannot download my HD stamp.\n\nOrder Reference: ${currentOrderRef}\n\nPlease help me get my stamp!\n\nThank you.`;
+      const subject = `WebStamp Support - Order ${currentOrderRef}`;
+      const body = `Hello WebStamp Support,\n\nI need assistance with my order.\n\nOrder Reference: ${currentOrderRef}\n\nPlease help me with the following:\n\nThank you.`;
       const mailtoLink = `mailto:support@webstamp.my?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       
       window.open(mailtoLink, '_blank');
