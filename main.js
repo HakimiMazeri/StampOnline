@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // =============================================
-  // BCL PAYMENT - OPTION 1 (Email Encoding)
+  // BCL PAYMENT - DIGITAL HD STAMP
   // =============================================
 
   document.getElementById('btn-download-hd').addEventListener('click', function() {
@@ -439,9 +439,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Create unique order reference
     const timestamp = Date.now();
     const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
+    const orderRef = `DIGITAL_${timestamp}_${shortHash}`;
     
-    console.log('📦 Preparing stamp data for BCL...');
+    console.log('📦 Preparing DIGITAL stamp data for BCL...');
     
     // Create MINIMAL stamp data with short property names
     const stampData = {
@@ -462,10 +462,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // Timestamp
       ts: timestamp,
       // Order reference
-      or: orderRef
+      or: orderRef,
+      // Order type
+      type: 'digital'
     };
     
-    console.log('Stamp data prepared:', stampData);
+    console.log('Digital stamp data prepared:', stampData);
     
     // Convert to JSON and encode with Base64
     const stampDataString = JSON.stringify(stampData);
