@@ -118,15 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
     for (let i = 0; i < text.length; i++) {
       const ang = start + i * step,
             p = pol(cx, cy, R, ang);
-      chars += <text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>;
+      chars += `<text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>`;
     }
 
     let mid = '';
     if (d.ssmNoNew) {
-      mid += <text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoNew.toUpperCase()}</text>;
+      mid += `<text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoNew.toUpperCase()}</text>`;
     }
     if (d.ssmNoOld) {
-      mid += <text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>;
+      mid += `<text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>`;
     }
 
     return `
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = <text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>;
+      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = <text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>;
+      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const d = readForm();
     
     // Create filename
-    const fileName = 'Company_Stamp_' + 
+    const fileName = 'Company_Chop_' + 
                     (d.companyName ? d.companyName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20) : 'Stamp') + 
                     '_' + Date.now() + 
                     (isHD ? '_HD' : '') + 
@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Create unique order reference
     const timestamp = Date.now();
     const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const orderRef = WEBSTAMP_${timestamp}_${shortHash};
+    const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
     
     console.log('📦 Preparing stamp data for BCL...');
     
@@ -478,12 +478,12 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Base64 size:', encodedStampData.length, 'characters');
     
     // Create special email format: real-email#ENCODED_DATA
-    const specialEmail = ${billingEmail}#${encodedStampData};
+    const specialEmail = `${billingEmail}#${encodedStampData}`;
     console.log('Special email created (first 100 chars):', specialEmail.substring(0, 100));
     
     // Save to sessionStorage as backup (works for same session)
-    sessionStorage.setItem(stamp_${orderRef}, stampDataString);
-    console.log('Saved to sessionStorage with key:', stamp_${orderRef});
+    sessionStorage.setItem(`stamp_${orderRef}`, stampDataString);
+    console.log('Saved to sessionStorage with key:', `stamp_${orderRef}`);
     
     // Build BCL redirect URL
     const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
@@ -493,19 +493,19 @@ document.addEventListener('DOMContentLoaded', function () {
       'order_ref': orderRef,
       'customer_email': specialEmail,  // ← Contains encoded stamp data!
       'customer_name': (d.companyName || 'Customer').substring(0, 50),
-      'product': HD Company Stamp - ${(d.companyName || 'Company').substring(0, 30)},
+      'product': `HD Company Stamp - ${(d.companyName || 'Company').substring(0, 30)}`,
       'amount': '3.00',
       'currency': 'MYR',
       // Optional: Include address if needed
       'address': d.address[0] || ''
     });
     
-    const fullBCLUrl = ${baseUrl}?${redirectParams.toString()};
+    const fullBCLUrl = `${baseUrl}?${redirectParams.toString()}`;
     console.log('BCL URL length:', fullBCLUrl.length, 'characters');
     console.log('BCL URL (first 200 chars):', fullBCLUrl.substring(0, 200));
     
     // Show confirmation to user
-    if (confirm(Proceed to payment for HD stamp?\n\nCompany: ${d.companyName}\nAmount: RM 3.00\n\nClick OK to continue to secure payment.)) {
+    if (confirm(`Proceed to payment for HD stamp?\n\nCompany: ${d.companyName}\nAmount: RM 3.00\n\nClick OK to continue to secure payment.`)) {
       console.log('🚀 Redirecting to BCL payment...');
       window.location.href = fullBCLUrl;
     }
