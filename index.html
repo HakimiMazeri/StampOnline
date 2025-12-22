@@ -126,28 +126,30 @@
             </div>
           </div>
 
-          <div style="display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-top:4px;">
-            <!-- Free Download Button -->
-            <button type="button" id="btn-download-free" class="btn btn-outline">
-              Download Free
-            </button>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;align-items:flex-start;">
 
-            <!-- HD Download Button -->
-            <button type="button" id="btn-download-hd" class="btn btn-primary">
-              Download HD (RM3)
-            </button>
-          </div>
+  <!-- Smaller button -->
+  <button type="button" id="btn-download-free"
+    class="btn btn-outline"
+    style="flex:0.7;min-width:80px;">
+    Download Free
+  </button>
 
-          <!-- Physical Stamp Button -->
-          <div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:16px;">
-            <button type="button" id="btn-physical-stamp" class="btn btn-secondary" style="width:100%;padding:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;">
-              <span style="font-size:18px;">🖨️</span>
-              <span>Order Physical Stamp</span>
-            </button>
-            <small class="text-muted" style="display:block;text-align:center;margin-top:6px;font-size:12px;">
-              Get your stamp physically delivered to your address
-            </small>
-          </div>
+  <!-- Bigger button + helper text -->
+  <div style="flex:1.3;min-width:160px;">
+    <button type="button" id="btn-download-hd"
+      class="btn btn-primary w-100">
+      Download HD
+    </button>
+
+    <small class="text-muted ms-3 d-block">
+      Includes option for <strong>Physical Stamp</strong>
+    </small>
+  </div>
+
+</div>
+
+
         </form>
       </div>
 
@@ -182,10 +184,14 @@
         <div class="footer-title">Company</div>
         <a href="https://webimpian.com/">Web Impian Sdn. Bhd.</a>
         <a href="https://main.bcl.my/">bcl.my</a>
+        <!-- <a href="/terms">Terms</a> -->
+        <!-- <a href="/privacy">Privacy</a> -->
       </div>
 
       <div class="footer-section">
         <div class="footer-title">Support</div>
+        <!-- <a href="/faq">Help Center</a> -->
+        <!-- <a href="/contact">Contact</a> -->
         <div class="footer-note">
           © 2025 WebStamp.my <br>
           <span style="color:#6b7280;"></span>
@@ -216,180 +222,12 @@
     
     <!-- Hidden container for BCL embed code -->
     <div id="bcl-payment-form" data-url="https://intern.bcl.my/embed/form/webcop-hd-version"></div>
-
+    
     <script src="https://bcl.my/js/bc-encrypted-payment-embed.js"></script>
   </div>
 </div>
 
   <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
   <script src="main.js"></script>
-  
-  <!-- Add this script for the physical stamp button -->
-  <script>
-    // Physical Stamp Button Handler
-    document.addEventListener('DOMContentLoaded', function() {
-      const physicalStampBtn = document.getElementById('btn-physical-stamp');
-      
-      if (physicalStampBtn) {
-        physicalStampBtn.addEventListener('click', function() {
-          orderPhysicalStamp();
-        });
-      }
-      
-      function orderPhysicalStamp() {
-        const form = document.getElementById('stamp-form');
-        const billingEmail = form.querySelector('[name="billingEmail"]').value;
-        const d = readForm();
-        
-        // Validate email
-        if (!billingEmail) {
-          alert('Please enter your billing email to proceed with physical stamp order.');
-          form.querySelector('[name="billingEmail"]').focus();
-          return;
-        }
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(billingEmail)) {
-          alert('Please enter a valid email address.');
-          return;
-        }
-        
-        if (!d.companyName || d.companyName.trim() === '') {
-          alert('Please enter your company name for the physical stamp.');
-          form.querySelector('[name="companyName"]').focus();
-          return;
-        }
-        
-        // Validate shipping address for physical stamp
-        if (!d.address[0] || d.address[0].trim() === '') {
-          alert('Please enter your shipping address for physical stamp delivery.');
-          form.querySelector('[name="address1"]').focus();
-          return;
-        }
-        
-        // Create unique order reference
-        const timestamp = Date.now();
-        const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const orderRef = `PHYSICAL_${timestamp}_${shortHash}`;
-        
-        console.log('📦 Preparing PHYSICAL stamp data for BCL...');
-        
-        // Create COMPLETE stamp data with ALL fields including address
-        const stampData = {
-          // Company details
-          cn: (d.companyName || '').trim(),
-          sn: (d.ssmNo || '').trim(),
-          so: (d.ssmNoOld || '').trim(),
-          
-          // Design details
-          t: d.template || 'round',
-          c: d.color || 'black',
-          
-          // Contact details
-          e: billingEmail.trim(),
-          p: (d.phone || '').trim(),
-          
-          // SHIPPING ADDRESS (for delivery)
-          a1: (d.address[0] || '').trim(),
-          a2: (d.address[1] || '').trim(),
-          a3: (d.address[2] || '').trim(),
-          
-          // Additional email if provided
-          em: (d.email || '').trim(),
-          
-          // Order metadata
-          ts: timestamp,
-          or: orderRef,
-          type: 'physical'
-        };
-        
-        console.log('Physical stamp data prepared:', stampData);
-        
-        // Convert to JSON and encode with Base64
-        const stampDataString = JSON.stringify(stampData);
-        console.log('JSON size:', stampDataString.length, 'characters');
-        
-        // Base64 encode (URL safe)
-        const encodedStampData = btoa(encodeURIComponent(stampDataString));
-        console.log('Base64 size:', encodedStampData.length, 'characters');
-        
-        // Create special email format: real-email#ENCODED_DATA
-        const specialEmail = `${billingEmail}#${encodedStampData}`;
-        console.log('Special email created (first 100 chars):', specialEmail.substring(0, 100));
-        
-        // Save to sessionStorage as backup
-        sessionStorage.setItem(`stamp_${orderRef}`, stampDataString);
-        console.log('Saved to sessionStorage with key:', `stamp_${orderRef}`);
-        
-        // Build BCL redirect URL for PHYSICAL stamp
-        const baseUrl = 'https://intern.bcl.my/form/webcop-hd-physical';
-        
-        const redirectParams = new URLSearchParams({
-          // Required BCL parameters
-          'order_ref': orderRef,
-          'customer_email': specialEmail,  // ← Contains ALL encoded stamp data including address!
-          'customer_name': (d.companyName || 'Customer').substring(0, 50),
-          'product': `Physical Company Stamp - ${(d.companyName || 'Company').substring(0, 30)}`,
-          'amount': '35.00',
-          'currency': 'MYR',
-          
-          // Optional: Pre-fill shipping address in BCL form
-          'address': (d.address[0] || '').substring(0, 100),
-          'address2': (d.address[1] || '').substring(0, 100),
-          'address3': (d.address[2] || '').substring(0, 100),
-          'phone': (d.phone || '').substring(0, 20)
-        });
-        
-        const fullBCLUrl = `${baseUrl}?${redirectParams.toString()}`;
-        console.log('BCL URL for PHYSICAL stamp:', fullBCLUrl);
-        
-        // Show confirmation to user
-        const confirmationMessage = `
-Order Physical Stamp?
-
-Company: ${d.companyName}
-Template: ${d.template}
-Color: ${d.color}
-
-Shipping Address:
-${d.address[0] || ''}
-${d.address[1] || ''}
-${d.address[2] || ''}
-
-Amount: RM 35.00
-Delivery: 3-5 working days
-
-Click OK to proceed to secure payment.
-        `.trim();
-        
-        if (confirm(confirmationMessage)) {
-          console.log('🚀 Redirecting to BCL payment for PHYSICAL stamp...');
-          window.location.href = fullBCLUrl;
-        }
-      }
-      
-      // Helper function to read form data
-      function readForm() {
-        const form = document.getElementById('stamp-form');
-        const ssmNoNew = form.querySelector('[name="ssmNoNew"]')?.value || '';
-        
-        return {
-          companyName: form.querySelector('[name="companyName"]')?.value || '',
-          ssmNo: ssmNoNew,
-          ssmNoNew: ssmNoNew,
-          ssmNoOld: form.querySelector('[name="ssmNoOld"]')?.value || '',
-          address: [
-            form.querySelector('[name="address1"]')?.value || '',
-            form.querySelector('[name="address2"]')?.value || '',
-            form.querySelector('[name="address3"]')?.value || ''
-          ],
-          phone: form.querySelector('[name="phone"]')?.value || '',
-          email: form.querySelector('[name="email"]')?.value || '',
-          template: form.querySelector('[name="template"]')?.value || 'round',
-          color: (form.querySelector('button[data-color][data-active="1"]')?.dataset.color) || 'black'
-        };
-      }
-    });
-  </script>
 </body>
 </html>
