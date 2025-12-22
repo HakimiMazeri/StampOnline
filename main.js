@@ -287,53 +287,37 @@ document.addEventListener('DOMContentLoaded', function () {
       // Get the clean SVG HTML
       const tc = getTextColor(d.color || 'black');
       const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      const svgString = buildSVG(d);
+      const cleanSVG = buildSVG(d);
       
-      // Extract just the SVG tag and its contents (remove any wrapper HTML)
-      let cleanSVG = svgString;
-      const svgStart = svgString.indexOf('<svg');
-      const svgEnd = svgString.lastIndexOf('</svg>') + 6;
+      // Create a container for the SVG
+      const svgContainer = document.createElement('div');
+      svgContainer.style.position = 'fixed';
+      svgContainer.style.left = '-9999px';
+      svgContainer.style.top = '-9999px';
+      svgContainer.style.width = '500px';
+      svgContainer.style.height = '500px';
+      svgContainer.style.background = 'white';
+      svgContainer.innerHTML = cleanSVG;
+      document.body.appendChild(svgContainer);
       
-      if (svgStart !== -1 && svgEnd !== -1) {
-        cleanSVG = svgString.substring(svgStart, svgEnd);
-      }
+      const svgElement = svgContainer.querySelector('svg');
       
-      // Add XML declaration for standalone SVG
-      const svgWithXML = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + cleanSVG;
-      
-      // Create canvas
-      const canvas = document.createElement('canvas');
-      
-      // Parse SVG dimensions
-      const widthMatch = svgString.match(/width="(\d+)"/);
-      const heightMatch = svgString.match(/height="(\d+)"/);
-      const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
-      
-      let svgWidth = 280; // default
-      let svgHeight = 280; // default
-      
-      if (widthMatch && heightMatch) {
-        svgWidth = parseInt(widthMatch[1]);
-        svgHeight = parseInt(heightMatch[1]);
-      } else if (viewBoxMatch) {
-        const viewBox = viewBoxMatch[1].split(' ');
-        svgWidth = parseInt(viewBox[2]);
-        svgHeight = parseInt(viewBox[3]);
-      }
+      // Set SVG dimensions explicitly
+      const svgWidth = parseInt(svgElement.getAttribute('width')) || 280;
+      const svgHeight = parseInt(svgElement.getAttribute('height')) || 280;
       
       // Scale factor
       const scale = isHD ? 3 : 2;
       
+      // Create canvas
+      const canvas = document.createElement('canvas');
       canvas.width = svgWidth * scale;
       canvas.height = svgHeight * scale;
       const ctx = canvas.getContext('2d');
       
-      // White background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Create image from SVG
-      const svgBlob = new Blob([svgWithXML], {type: 'image/svg+xml;charset=utf-8'});
+      // Create image from SVG data URL
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
       const url = URL.createObjectURL(svgBlob);
       
       const img = new Image();
@@ -392,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Clean up
         URL.revokeObjectURL(url);
+        document.body.removeChild(svgContainer);
         
         // Show success message
         const message = isHD ? 
@@ -401,13 +386,10 @@ document.addEventListener('DOMContentLoaded', function () {
       };
       
       img.onerror = function() {
-        console.error('Image load error:', img.error);
         alert('Error loading image. Please try again.');
-        URL.revokeObjectURL(url);
+        document.body.removeChild(svgContainer);
       };
       
-      // Set crossOrigin to anonymous to avoid CORS issues
-      img.crossOrigin = 'anonymous';
       img.src = url;
       
     } catch (error) {
@@ -427,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // =============================================
-  // BCL PAYMENT - DIGITAL HD STAMP
+  // BCL PAYMENT - OPTION 1 (Email Encoding)
   // =============================================
 
   document.getElementById('btn-download-hd').addEventListener('click', function() {
@@ -457,9 +439,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Create unique order reference
     const timestamp = Date.now();
     const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const orderRef = `DIGITAL_${timestamp}_${shortHash}`;
+    const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
     
-    console.log('📦 Preparing DIGITAL stamp data for BCL...');
+    console.log('📦 Preparing stamp data for BCL...');
     
     // Create MINIMAL stamp data with short property names
     const stampData = {
@@ -480,12 +462,10 @@ document.addEventListener('DOMContentLoaded', function () {
       // Timestamp
       ts: timestamp,
       // Order reference
-      or: orderRef,
-      // Order type
-      type: 'digital'
+      or: orderRef
     };
     
-    console.log('Digital stamp data prepared:', stampData);
+    console.log('Stamp data prepared:', stampData);
     
     // Convert to JSON and encode with Base64
     const stampDataString = JSON.stringify(stampData);
