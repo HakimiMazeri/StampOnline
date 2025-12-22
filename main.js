@@ -287,37 +287,53 @@ document.addEventListener('DOMContentLoaded', function () {
       // Get the clean SVG HTML
       const tc = getTextColor(d.color || 'black');
       const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      const cleanSVG = buildSVG(d);
+      const svgString = buildSVG(d);
       
-      // Create a container for the SVG
-      const svgContainer = document.createElement('div');
-      svgContainer.style.position = 'fixed';
-      svgContainer.style.left = '-9999px';
-      svgContainer.style.top = '-9999px';
-      svgContainer.style.width = '500px';
-      svgContainer.style.height = '500px';
-      svgContainer.style.background = 'white';
-      svgContainer.innerHTML = cleanSVG;
-      document.body.appendChild(svgContainer);
+      // Extract just the SVG tag and its contents (remove any wrapper HTML)
+      let cleanSVG = svgString;
+      const svgStart = svgString.indexOf('<svg');
+      const svgEnd = svgString.lastIndexOf('</svg>') + 6;
       
-      const svgElement = svgContainer.querySelector('svg');
+      if (svgStart !== -1 && svgEnd !== -1) {
+        cleanSVG = svgString.substring(svgStart, svgEnd);
+      }
       
-      // Set SVG dimensions explicitly
-      const svgWidth = parseInt(svgElement.getAttribute('width')) || 280;
-      const svgHeight = parseInt(svgElement.getAttribute('height')) || 280;
+      // Add XML declaration for standalone SVG
+      const svgWithXML = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + cleanSVG;
+      
+      // Create canvas
+      const canvas = document.createElement('canvas');
+      
+      // Parse SVG dimensions
+      const widthMatch = svgString.match(/width="(\d+)"/);
+      const heightMatch = svgString.match(/height="(\d+)"/);
+      const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
+      
+      let svgWidth = 280; // default
+      let svgHeight = 280; // default
+      
+      if (widthMatch && heightMatch) {
+        svgWidth = parseInt(widthMatch[1]);
+        svgHeight = parseInt(heightMatch[1]);
+      } else if (viewBoxMatch) {
+        const viewBox = viewBoxMatch[1].split(' ');
+        svgWidth = parseInt(viewBox[2]);
+        svgHeight = parseInt(viewBox[3]);
+      }
       
       // Scale factor
       const scale = isHD ? 3 : 2;
       
-      // Create canvas
-      const canvas = document.createElement('canvas');
       canvas.width = svgWidth * scale;
       canvas.height = svgHeight * scale;
       const ctx = canvas.getContext('2d');
       
-      // Create image from SVG data URL
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Create image from SVG
+      const svgBlob = new Blob([svgWithXML], {type: 'image/svg+xml;charset=utf-8'});
       const url = URL.createObjectURL(svgBlob);
       
       const img = new Image();
@@ -376,7 +392,6 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Clean up
         URL.revokeObjectURL(url);
-        document.body.removeChild(svgContainer);
         
         // Show success message
         const message = isHD ? 
@@ -386,10 +401,13 @@ document.addEventListener('DOMContentLoaded', function () {
       };
       
       img.onerror = function() {
+        console.error('Image load error:', img.error);
         alert('Error loading image. Please try again.');
-        document.body.removeChild(svgContainer);
+        URL.revokeObjectURL(url);
       };
       
+      // Set crossOrigin to anonymous to avoid CORS issues
+      img.crossOrigin = 'anonymous';
       img.src = url;
       
     } catch (error) {
