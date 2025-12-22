@@ -118,15 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
     for (let i = 0; i < text.length; i++) {
       const ang = start + i * step,
             p = pol(cx, cy, R, ang);
-      chars += `<text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>`;
+      chars += <text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>;
     }
 
     let mid = '';
     if (d.ssmNoNew) {
-      mid += `<text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoNew.toUpperCase()}</text>`;
+      mid += <text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoNew.toUpperCase()}</text>;
     }
     if (d.ssmNoOld) {
-      mid += `<text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>`;
+      mid += <text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>;
     }
 
     return `
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function boxStamp(d, tc, ff) {
-    const startX = 30;
+    const cx = 180;
     const lines = [];
 
     if (d.companyName) lines.push({
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
+      const out = <text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function infoStamp(d, tc, ff) {
-    const startX = 30;
+    const cx = 180;
     const lines = [];
 
     if (d.companyName) lines.push({
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let y = startY;
     const svgLines = lines.map(l => {
-      const out = `<text x="${startX}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="start">${l.text}</text>`;
+      const out = <text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>;
       y += 20 + (l.extraGap || 0);
       return out;
     }).join('');
@@ -248,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
     previewHost.innerHTML = [
       '<div id="stamp-preview-wrapper" style="position:relative;display:inline-block;padding:16px;background:#F7F9FA;border-radius:8px;overflow:hidden;">',
       svg,
+      '<div aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:56px;font-weight:900;letter-spacing:6px;text-transform:uppercase;transform:rotate(-22deg);color:rgba(0,0,0,0.22);text-shadow:0 0 2px rgba(255,255,255,0.6), 0 0 8px rgba(255,255,255,0.35);user-select:none;">PREVIEW</div>',
       '<div aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:42px;font-weight:800;letter-spacing:4px;text-transform:uppercase;transform:rotate(18deg);color:rgba(0,0,0,0.12);user-select:none;">WATERMARK</div>',
       '</div>'
     ].join('');
@@ -359,8 +360,9 @@ document.addEventListener('DOMContentLoaded', function () {
           // HD paid version - clean
           ctx.font = '10px Arial';
           ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText('WebStamp.my | BCL', canvas.width - 5, canvas.height - 5);
         }
         
         // Convert canvas to data URL and download
@@ -439,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Create unique order reference
     const timestamp = Date.now();
     const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
+    const orderRef = WEBSTAMP_${timestamp}_${shortHash};
     
     console.log('📦 Preparing stamp data for BCL...');
     
@@ -476,12 +478,12 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Base64 size:', encodedStampData.length, 'characters');
     
     // Create special email format: real-email#ENCODED_DATA
-    const specialEmail = `${billingEmail}#${encodedStampData}`;
+    const specialEmail = ${billingEmail}#${encodedStampData};
     console.log('Special email created (first 100 chars):', specialEmail.substring(0, 100));
     
     // Save to sessionStorage as backup (works for same session)
-    sessionStorage.setItem(`stamp_${orderRef}`, stampDataString);
-    console.log('Saved to sessionStorage with key:', `stamp_${orderRef}`);
+    sessionStorage.setItem(stamp_${orderRef}, stampDataString);
+    console.log('Saved to sessionStorage with key:', stamp_${orderRef});
     
     // Build BCL redirect URL
     const baseUrl = 'https://intern.bcl.my/form/webcop-hd-version';
@@ -491,19 +493,19 @@ document.addEventListener('DOMContentLoaded', function () {
       'order_ref': orderRef,
       'customer_email': specialEmail,  // ← Contains encoded stamp data!
       'customer_name': (d.companyName || 'Customer').substring(0, 50),
-      'product': `HD Company Stamp - ${(d.companyName || 'Company').substring(0, 30)}`,
+      'product': HD Company Stamp - ${(d.companyName || 'Company').substring(0, 30)},
       'amount': '3.00',
       'currency': 'MYR',
       // Optional: Include address if needed
       'address': d.address[0] || ''
     });
     
-    const fullBCLUrl = `${baseUrl}?${redirectParams.toString()}`;
+    const fullBCLUrl = ${baseUrl}?${redirectParams.toString()};
     console.log('BCL URL length:', fullBCLUrl.length, 'characters');
     console.log('BCL URL (first 200 chars):', fullBCLUrl.substring(0, 200));
     
     // Show confirmation to user
-    if (confirm(`Proceed to payment for HD stamp?\n\nCompany: ${d.companyName}\nAmount: RM 3.00\n\nClick OK to continue to secure payment.`)) {
+    if (confirm(Proceed to payment for HD stamp?\n\nCompany: ${d.companyName}\nAmount: RM 3.00\n\nClick OK to continue to secure payment.)) {
       console.log('🚀 Redirecting to BCL payment...');
       window.location.href = fullBCLUrl;
     }
