@@ -112,6 +112,37 @@ p { margin: 0; }
 .footer-title { font-weight:600; margin-bottom:4px; }
 .footer-note { font-size:0.65rem; color:#8b96a3; margin-top:12px; }
 
+/* Template Fields Visibility - FIXED */
+.template-fields {
+  display: none !important;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.template-fields.active {
+  display: grid !important;
+  opacity: 1;
+  max-height: 1000px;
+  gap: 1rem;
+}
+
+/* Ensure form container handles the layout properly */
+#stamp-form {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Make sure inputs are visible when their parent is active */
+.template-fields.active input,
+.template-fields.active select,
+.template-fields.active textarea {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* spacing helpers */
 .main-content { padding-top:120px; padding-bottom:64px; }
 .hero { margin-bottom:48px; }
@@ -168,20 +199,6 @@ p { margin: 0; }
 @media (max-width:640px) {
   .desktop-only { display:none; }
   .mobile-only { display:inline-flex; }
-}
-
-.template-fields {
-  display: none;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.template-fields.active {
-  display: block;
-  opacity: 1;
-  max-height: 1000px;
 }
 
 /* Payment Modal Styles */
@@ -363,4 +380,26 @@ p { margin: 0; }
   border-radius: 8px;
   text-align: center;
   margin-top: 1rem;
+}
+
+/* Stamp Preview Specific Styles */
+#stamp-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+}
+
+#stamp-preview-wrapper {
+  position: relative;
+  display: inline-block;
+  padding: 16px;
+  background: #F7F9FA;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#stamp-preview-wrapper svg {
+  display: block;
+  margin: 0 auto;
 }
