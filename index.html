@@ -8,95 +8,6 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* Payment redirect info modal */
-    .redirect-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 10000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    
-    .redirect-modal-content {
-      background: white;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 500px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      animation: modalSlideIn 0.3s ease-out;
-    }
-    
-    @keyframes modalSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .redirect-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    
-    .redirect-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 25px;
-    }
-    
-    .redirect-buttons button {
-      padding: 10px 20px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-continue {
-      background: #3b82f6;
-      color: white;
-    }
-    
-    .btn-continue:hover {
-      background: #2563eb;
-    }
-    
-    .btn-cancel {
-      background: #e5e7eb;
-      color: #374151;
-    }
-    
-    .btn-cancel:hover {
-      background: #d1d5db;
-    }
-    
-    @media (max-width: 640px) {
-      .redirect-modal-content {
-        padding: 20px;
-        max-width: 90%;
-      }
-      
-      .redirect-buttons {
-        flex-direction: column;
-      }
-    }
-  </style>
 </head>
 
 <body>
@@ -225,17 +136,12 @@
           </div>
         </form>
         
-        <!-- Test Button -->
+        <!-- Development Test Button -->
         <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-          <small style="color: #6b7280;">Test Tools</small><br>
-          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px;">
-            <button onclick="testDirectRedirect()" style="padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              🧪 Test Success Page
-            </button>
-            <button onclick="testFailedRedirect()" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              🧪 Test Failed Page
-            </button>
-          </div>
+          <small style="color: #6b7280;">Development Tools</small><br>
+          <button onclick="testPaymentFlow()" style="margin-top: 5px; padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            🧪 Test Payment Flow
+          </button>
         </div>
       </div>
 
@@ -281,24 +187,6 @@
       </div>
     </div>
   </footer>
-
-  <!-- Redirect Confirmation Modal -->
-  <div id="redirect-modal" class="redirect-modal">
-    <div class="redirect-modal-content">
-      <div class="redirect-icon">🔗</div>
-      <h3 style="margin: 0 0 15px 0;">Redirecting to Secure Payment</h3>
-      <p style="color: #6b7280; margin: 0 0 10px 0;">
-        You will be redirected to BCL.my to complete your payment of <strong>RM 3.00</strong>.
-      </p>
-      <p style="color: #6b7280; font-size: 0.9rem; margin: 0;">
-        After payment, you'll return to download your HD stamp.
-      </p>
-      <div class="redirect-buttons">
-        <button class="btn-cancel" onclick="hideRedirectModal()">Cancel</button>
-        <button class="btn-continue" onclick="proceedToBCL()">Continue to Payment</button>
-      </div>
-    </div>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
   <script src="main.js"></script>
