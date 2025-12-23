@@ -856,6 +856,12 @@ function generateStampImage(stampData) {
       img.onload = function() {
         // Draw the stamp at HD resolution
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        URL.revokeObjectURL(url);
+        
+        const dataUrl = canvas.toDataURL('image/png');
+        logDebug('✅ HD stamp image generated successfully');
+        resolve(dataUrl);
       };
       
       img.onerror = function() {
@@ -866,12 +872,6 @@ function generateStampImage(stampData) {
       
       img.src = url;
     });
-    
-  } catch (error) {
-    logDebug('❌ Error generating stamp image', error);
-    return null;
-  }
-}
 
 /**
  * Updated downloadStampImage function to work with Promise
@@ -1205,4 +1205,5 @@ function downloadStampImage(stampData) {
   </script>
 </body>
 </html>
+
 
