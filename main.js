@@ -1,7 +1,3 @@
-// Global variables for payment flow
-let pendingPaymentData = null;
-let pendingOrderRef = null;
-
 document.addEventListener('DOMContentLoaded', function () {
   // Mobile menu toggle
   const burger = document.getElementById('hamburger');
@@ -99,10 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function roundStamp(d, tc, ff) {
     const text = (d.companyName || '').toUpperCase();
-    const cx = 140,
-          cy = 140,
-          R = 80,
-          step = 10;
+    const cx = 140, cy = 140, R = 80, step = 10;
 
     let chars = '';
     const total = (text.length ? text.length - 1 : 0) * step,
@@ -243,8 +236,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderPreview() {
     const d = readForm();
-    const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    const originId = shortHash((d.companyName || '') + '|' + (d.ssmNo || ''));
     const svg = buildSVG(d);
     previewHost.innerHTML = [
       '<div id="stamp-preview-wrapper" style="position:relative;display:inline-block;padding:16px;background:#F7F9FA;border-radius:8px;overflow:hidden;">',
@@ -255,10 +246,9 @@ document.addEventListener('DOMContentLoaded', function () {
     ].join('');
   }
 
-  // Initial render
   renderPreview();
 
-  // Free download function
+  // Download Free Version
   function downloadStamp(isHD, isPaid = false) {
     const d = readForm();
     const billingEmail = d.billingEmail;
@@ -269,14 +259,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(billingEmail)) {
       alert('Please enter a valid email address.');
       return;
     }
     
-    // Create filename
     const fileName = 'Company_Chop_' + 
                     (d.companyName ? d.companyName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20) : 'Stamp') + 
                     '_' + Date.now() + 
@@ -284,17 +272,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     '.png';
     
     try {
-      const tc = getTextColor(d.color || 'black');
-      const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       const cleanSVG = buildSVG(d);
       
       const svgContainer = document.createElement('div');
       svgContainer.style.position = 'fixed';
       svgContainer.style.left = '-9999px';
       svgContainer.style.top = '-9999px';
-      svgContainer.style.width = '500px';
-      svgContainer.style.height = '500px';
-      svgContainer.style.background = 'white';
       svgContainer.innerHTML = cleanSVG;
       document.body.appendChild(svgContainer);
       
@@ -330,22 +313,6 @@ document.addEventListener('DOMContentLoaded', function () {
           ctx.rotate(-Math.PI/6);
           ctx.fillText('FREE VERSION', 0, 0);
           ctx.restore();
-        } else if (isHD && !isPaid) {
-          ctx.font = 'bold ' + (canvas.width * 0.06) + 'px Arial';
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.save();
-          ctx.translate(canvas.width/2, canvas.height/2);
-          ctx.rotate(-Math.PI/6);
-          ctx.fillText('HD - PURCHASE REQUIRED', 0, 0);
-          ctx.restore();
-        } else {
-          ctx.font = '10px Arial';
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText('WebStamp.my | Premium HD', canvas.width - 5, canvas.height - 5);
         }
         
         const dataUrl = canvas.toDataURL('image/png');
@@ -360,10 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         URL.revokeObjectURL(url);
         document.body.removeChild(svgContainer);
         
-        const message = isHD ? 
-          (isPaid ? '✅ HD Version downloaded!\nHigh quality, no watermark.' : 'HD version requires payment. Please click "Download HD (RM3)" to purchase.') : 
-          '✅ Free Version downloaded!\nStandard quality with watermark.';
-        alert(message);
+        alert(isHD ? 'HD version requires payment.' : '✅ Free Version downloaded!');
       };
       
       img.onerror = function() {
@@ -375,22 +339,16 @@ document.addEventListener('DOMContentLoaded', function () {
       
     } catch (error) {
       console.error('Download error:', error);
-      alert('Error generating image. Please try a different browser or refresh the page.');
+      alert('Error generating image. Please try a different browser.');
     }
   }
 
-  // Download Free button
   document.getElementById('btn-download-free').addEventListener('click', function() {
-    try {
-      downloadStamp(false);
-    } catch (error) {
-      console.error('Free download error:', error);
-      alert('Download error. Please try again or check console for details.');
-    }
+    downloadStamp(false);
   });
 
   // =============================================
-  // BCL PAYMENT FLOW - URL PARAMETER METHOD
+  // DIRECT REDIRECT PAYMENT (NO IFRAME)
   // =============================================
 
   document.getElementById('btn-download-hd').addEventListener('click', function() {
@@ -417,151 +375,159 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     
-    // Create unique order reference
+    // Generate unique order reference
     const timestamp = Date.now();
     const shortHash = Math.random().toString(36).substring(2, 10).toUpperCase();
     const orderRef = `WEBSTAMP_${timestamp}_${shortHash}`;
     
-    console.log('📦 Preparing HD stamp purchase...');
+    console.log('📦 Preparing payment redirect...');
     
-    // Create stamp data object
+    // Create complete stamp data
     const stampData = {
-      companyName: (d.companyName || '').trim(),
-      ssmNo: (d.ssmNo || '').trim(),
-      ssmNoOld: (d.ssmNoOld || '').trim(),
-      template: d.template || 'round',
-      color: d.color || 'black',
-      billingEmail: billingEmail.trim(),
-      address1: (d.address[0] || '').trim(),
-      address2: (d.address[1] || '').trim(),
-      address3: (d.address[2] || '').trim(),
-      phone: (d.phone || '').trim(),
-      email: (d.email || '').trim(),
-      timestamp: timestamp,
-      orderRef: orderRef
+      cn: (d.companyName || '').trim(),
+      sn: (d.ssmNo || '').trim(),
+      t: d.template || 'round',
+      c: d.color || 'black',
+      e: billingEmail.trim(),
+      a1: (d.address[0] || '').trim(),
+      a2: (d.address[1] || '').trim(),
+      a3: (d.address[2] || '').trim(),
+      p: (d.phone || '').trim(),
+      so: (d.ssmNoOld || '').trim(),
+      ts: timestamp,
+      or: orderRef
     };
     
-    // Save to sessionStorage (temporary, cleared when browser closes)
-    sessionStorage.setItem(`stamp_${orderRef}`, JSON.stringify(stampData));
+    // TRIPLE STORAGE STRATEGY - Data survives page redirect
+    console.log('💾 Saving to localStorage...');
     
-    // Store globally for modal
-    pendingPaymentData = stampData;
-    pendingOrderRef = orderRef;
+    // 1. Full data with order reference
+    localStorage.setItem(`stamp_${orderRef}`, JSON.stringify(stampData));
     
-    console.log('💾 Saved to sessionStorage:', orderRef);
-    console.log('📋 Order Reference:', orderRef);
-    console.log('📧 Customer Email:', billingEmail);
+    // 2. Track last order
+    localStorage.setItem('last_order_ref', orderRef);
     
-    // Show redirect confirmation modal
-    showRedirectModal();
-  });
-
-  // =============================================
-  // MODAL FUNCTIONS
-  // =============================================
-
-  function showRedirectModal() {
-    const modal = document.getElementById('redirect-modal');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function hideRedirectModal() {
-    const modal = document.getElementById('redirect-modal');
-    modal.style.display = 'none';
-    document.body.style.overflow = '';
-    pendingPaymentData = null;
-    pendingOrderRef = null;
-  }
-
-  function proceedToBCL() {
-    if (!pendingPaymentData || !pendingOrderRef) {
-      alert('Error: Payment data not found. Please try again.');
-      hideRedirectModal();
-      return;
-    }
+    // 3. Set expiry (1 hour from now)
+    localStorage.setItem(`stamp_exp_${orderRef}`, (timestamp + 3600000).toString());
     
-    const encodedData = btoa(JSON.stringify(pendingPaymentData));
+    // 4. Minimal backup (in case full data corrupts)
+    const minimalData = {
+      cn: stampData.cn,
+      sn: stampData.sn,
+      t: stampData.t,
+      c: stampData.c,
+      or: orderRef
+    };
+    localStorage.setItem(`stamp_min_${orderRef}`, JSON.stringify(minimalData));
     
-    // Build BCL payment URL
-    // IMPORTANT: Configure these URLs in your BCL dashboard!
-    const bclParams = new URLSearchParams({
-      'order_number': pendingOrderRef,  // Will be passed back as {order_number}
-      'customer_email': `${pendingPaymentData.billingEmail}#${encodedData}`, // Encode data in email
-      'customer_name': (pendingPaymentData.companyName || 'Customer').substring(0, 50),
-      'product': `HD Company Stamp - ${(pendingPaymentData.companyName || 'Company').substring(0, 30)}`,
-      'amount': '3.00',
-      'currency': 'MYR',
-      // BCL will use the URLs configured in your dashboard
-      // Make sure to set them in BCL: success, failed, pending URLs
+    console.log('✅ Data saved to localStorage:', orderRef);
+    console.log('📊 Storage keys created:', {
+      full: `stamp_${orderRef}`,
+      minimal: `stamp_min_${orderRef}`,
+      expiry: `stamp_exp_${orderRef}`,
+      last: 'last_order_ref'
     });
     
-    const bclPaymentUrl = `https://intern.bcl.my/payment/checkout?${bclParams.toString()}`;
+    // Build return URL with session parameter
+    const baseUrl = window.location.origin;
+    const returnUrl = `${baseUrl}/success.html?session=${orderRef}&order_ref=${orderRef}&status=success`;
+    const cancelUrl = `${baseUrl}/index.html?payment=cancelled`;
     
-    console.log('🚀 Redirecting to BCL:', bclPaymentUrl);
+    // Build BCL payment URL (DIRECT REDIRECT - NO IFRAME)
+    const bclParams = new URLSearchParams({
+      'order_ref': orderRef,
+      'customer_email': billingEmail,
+      'customer_name': (d.companyName || 'Customer').substring(0, 50),
+      'product': `HD Stamp - ${(d.companyName || 'Company').substring(0, 20)}`,
+      'amount': '3.00',
+      'currency': 'MYR',
+      'return_url': returnUrl,
+      'cancel_url': cancelUrl
+    });
     
-    hideRedirectModal();
+    const bclPaymentUrl = `https://intern.bcl.my/embed/form/webcop-hd-version?${bclParams.toString()}`;
     
-    // Open in new tab for better UX
-    const paymentWindow = window.open(bclPaymentUrl, '_blank');
+    console.log('🔗 Payment URL created');
+    console.log('📋 Order Reference:', orderRef);
+    console.log('🎯 Return URL:', returnUrl);
+    console.log('🚀 Redirecting to BCL payment page...');
     
-    if (!paymentWindow) {
-      alert('Popup blocked. Please allow popups for this site or click OK to open in this tab.');
-      window.location.href = bclPaymentUrl; // Fallback to same tab
-    }
-  }
-
+    // Show loading message
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      color: white;
+      font-size: 1.2rem;
+      text-align: center;
+      flex-direction: column;
+      gap: 20px;
+    `;
+    loadingOverlay.innerHTML = `
+      <div style="font-size: 3rem;">💳</div>
+      <div><strong>Redirecting to Secure Payment...</strong></div>
+      <div style="font-size: 0.9rem; color: #ccc;">Your stamp data has been saved securely</div>
+      <div style="font-size: 0.8rem; color: #999;">Order: ${orderRef}</div>
+    `;
+    document.body.appendChild(loadingOverlay);
+    
+    // Redirect after 1.5 seconds (gives time to see the message)
+    setTimeout(() => {
+      window.location.href = bclPaymentUrl;
+    }, 1500);
+  });
+  
   // =============================================
-  // TEST FUNCTIONS
+  // TEST FUNCTION FOR DEVELOPMENT
   // =============================================
-
-  window.testDirectRedirect = function() {
+  
+  window.testPaymentFlow = function() {
+    console.log('🧪 Testing payment flow (simulating BCL redirect)...');
+    
     const d = readForm();
     const orderRef = 'TEST_' + Date.now();
     
-    const stampData = {
-      companyName: d.companyName || 'TEST COMPANY SDN BHD',
-      ssmNo: d.ssmNo || '202401234567',
-      ssmNoOld: d.ssmNoOld || '123456-A',
-      template: d.template || 'round',
-      color: d.color || 'black',
-      billingEmail: d.billingEmail || 'test@example.com',
-      address1: d.address[0] || 'Test Address 1',
-      address2: d.address[1] || 'Test Address 2',
-      address3: d.address[2] || 'Test Address 3',
-      phone: d.phone || '+603-1234 5678',
-      email: d.email || 'info@test.com',
-      timestamp: Date.now(),
-      orderRef: orderRef
+    const testData = {
+      cn: d.companyName || 'TEST COMPANY SDN BHD',
+      sn: d.ssmNo || '202401234567',
+      t: d.template || 'round',
+      c: d.color || 'black',
+      e: d.billingEmail || 'test@example.com',
+      a1: d.address[0] || 'Test Address Line 1',
+      a2: d.address[1] || 'Test Address Line 2',
+      a3: d.address[2] || 'Test Address Line 3',
+      p: d.phone || '+603-1234 5678',
+      so: d.ssmNoOld || '123456-A',
+      ts: Date.now(),
+      or: orderRef
     };
     
-    // Save to sessionStorage
-    sessionStorage.setItem(`stamp_${orderRef}`, JSON.stringify(stampData));
+    // Save to localStorage (simulating what happens before redirect)
+    localStorage.setItem(`stamp_${orderRef}`, JSON.stringify(testData));
+    localStorage.setItem('last_order_ref', orderRef);
+    localStorage.setItem(`stamp_exp_${orderRef}`, (Date.now() + 3600000).toString());
+    localStorage.setItem(`stamp_min_${orderRef}`, JSON.stringify({
+      cn: testData.cn,
+      sn: testData.sn,
+      t: testData.t,
+      c: testData.c,
+      or: orderRef
+    }));
     
-    // Simulate BCL success redirect
-    const successUrl = `success.html?order=${orderRef}&amount=3.00&status=success`;
-    window.open(successUrl, '_blank');
+    console.log('✅ Test data saved to localStorage');
+    console.log('🔄 Simulating BCL redirect back to success page...');
     
-    console.log('🧪 Test success redirect created');
-  };
-
-  window.testFailedRedirect = function() {
-    const d = readForm();
-    const orderRef = 'TEST_FAIL_' + Date.now();
-    
-    const stampData = {
-      companyName: d.companyName || 'TEST COMPANY SDN BHD',
-      timestamp: Date.now(),
-      orderRef: orderRef
-    };
-    
-    // Save to sessionStorage
-    sessionStorage.setItem(`stamp_${orderRef}`, JSON.stringify(stampData));
-    
-    // Simulate BCL failed redirect
-    const failedUrl = `success.html?order=${orderRef}&status=failed&reason=payment_cancelled`;
-    window.open(failedUrl, '_blank');
-    
-    console.log('🧪 Test failed redirect created');
+    // Simulate redirect to success page (like BCL would do)
+    setTimeout(() => {
+      window.location.href = `success.html?status=success&order_ref=${orderRef}&session=${orderRef}&customer_email=${encodeURIComponent(testData.e)}&amount=3.00&payment_method=bcl_redirect&test_mode=true`;
+    }, 1000);
   };
 });
