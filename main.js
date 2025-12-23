@@ -93,140 +93,206 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  /* =========================
+     ROUND STAMP (SVG)
+  ========================== */
+
   function roundStamp(d, tc, ff) {
     const text = (d.companyName || '').toUpperCase();
-    const cx = 140, cy = 140, R = 80, step = 10;
+    const cx = 140,
+      cy = 140,
+      R = 80,
+      step = 10;
 
     let chars = '';
-    const total = (text.length ? text.length - 1 : 0) * step,
-          start = -total / 2;
+    const total = (text.length ? text.length - 1 : 0) * step;
+    const start = -total / 2;
 
-    function pol(cx, cy, r, a) {
+    function polar(cx, cy, r, a) {
       const rad = (a - 90) * Math.PI / 180;
       return {
         x: cx + r * Math.cos(rad),
         y: cy + r * Math.sin(rad)
       };
     }
-    
+
     for (let i = 0; i < text.length; i++) {
-      const ang = start + i * step,
-            p = pol(cx, cy, R, ang);
-      chars += `<text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20" font-family="${ff}" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>`;
+      const ang = start + i * step;
+      const p = polar(cx, cy, R, ang);
+      chars += `<text x="${p.x}" y="${p.y}" fill="${tc}" font-size="20"
+        font-family="${ff}" font-weight="700"
+        text-anchor="middle" dominant-baseline="middle"
+        transform="rotate(${ang}, ${p.x}, ${p.y})">${text[i]}</text>`;
     }
 
     let mid = '';
     if (d.ssmNoNew) {
-      mid += `<text x="${cx}" y="${cy - 8}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoNew.toUpperCase()}</text>`;
+      mid += `<text x="${cx}" y="${cy - 8}" font-size="13"
+        text-anchor="middle" fill="${tc}" font-family="${ff}"
+        font-weight="600">${d.ssmNoNew.toUpperCase()}</text>`;
     }
     if (d.ssmNoOld) {
-      mid += `<text x="${cx}" y="${cy + 12}" font-size="13" text-anchor="middle" fill="${tc}" font-family="${ff}" font-weight="600">${d.ssmNoOld.toUpperCase()}</text>`;
+      mid += `<text x="${cx}" y="${cy + 12}" font-size="13"
+        text-anchor="middle" fill="${tc}" font-family="${ff}"
+        font-weight="600">${d.ssmNoOld.toUpperCase()}</text>`;
     }
 
     return `
-      <svg width="280" height="280" viewBox="0 0 280 280" role="img">
-        <circle cx="${cx}" cy="${cy}" r="110" stroke="${tc}" stroke-width="6" fill="none" />
+      <svg width="280" height="280" viewBox="0 0 280 280">
+        <circle cx="${cx}" cy="${cy}" r="110" stroke="${tc}" stroke-width="6" fill="none"/>
         ${chars}
-        <circle cx="${cx}" cy="${cy}" r="50" stroke="${tc}" stroke-width="2" fill="none" />
+        <circle cx="${cx}" cy="${cy}" r="50" stroke="${tc}" stroke-width="2" fill="none"/>
         ${mid}
-      </svg>
-    `;
+      </svg>`;
   }
+
+  /* =========================
+     BOX STAMP (EDITABLE)
+  ========================== */
 
   function boxStamp(d, tc, ff) {
     const cx = 180;
     const lines = [];
 
-    if (d.companyName) lines.push({
-      text: d.companyName.toUpperCase(),
-      size: 22,
-      weight: 700
-    });
-    if (d.ssmNo) lines.push({
-      text: d.ssmNo.toUpperCase(),
-      size: 14,
-      weight: 600,
-      extraGap: 8
-    });
-    (d.address || []).forEach(line => {
-      if (line) lines.push({
-        text: line.toUpperCase(),
-        size: 13,
-        weight: 500
+    if (d.companyName)
+      lines.push({ text: d.companyName.toUpperCase(), size: 22, weight: 700 });
+
+    if (d.ssmNoNew)
+      lines.push({
+        text: d.ssmNoNew.toUpperCase(),
+        size: 14,
+        weight: 600,
+        extraGap: 8
       });
+
+    d.address.forEach(a => {
+      if (a.trim())
+        lines.push({ text: a.toUpperCase(), size: 13, weight: 500 });
     });
 
-    const totalHeight = lines.length * 20 + lines.reduce((acc, l) => acc + (l.extraGap || 0), 0);
-    const startY = (220 - totalHeight) / 2 + 20;
-
-    let y = startY;
-    const svgLines = lines.map(l => {
-      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
-      y += 20 + (l.extraGap || 0);
-      return out;
-    }).join('');
+    let y = 40;
+    const textSVG = lines
+      .map(l => {
+        const out = `<text x="${cx}" y="${y}" font-size="${l.size}"
+          fill="${tc}" font-family="${ff}" font-weight="${l.weight}"
+          text-anchor="middle">${l.text}</text>`;
+        y += 20 + (l.extraGap || 0);
+        return out;
+      })
+      .join('');
 
     return `
-      <svg width="320" height="200" viewBox="0 0 360 220" role="img" aria-label="Box stamp">
-        <rect x="8" y="8" width="344" height="204" stroke="${tc}" stroke-width="3" fill="none" rx="4" />
-        ${svgLines}
-      </svg>
-    `;
+      <svg width="320" height="200" viewBox="0 0 360 220">
+        <rect x="8" y="8" width="344" height="204"
+          stroke="${tc}" stroke-width="3" fill="none" rx="4"/>
+        ${textSVG}
+      </svg>`;
   }
+
+  /* =========================
+     INFO STAMP (EDITABLE)
+  ========================== */
 
   function infoStamp(d, tc, ff) {
     const cx = 180;
     const lines = [];
 
-    if (d.companyName) lines.push({
-      text: d.companyName.toUpperCase(),
-      size: 22,
-      weight: 700
-    });
-    if (d.ssmNo) lines.push({
-      text: d.ssmNo.toUpperCase(),
-      size: 14,
-      weight: 600,
-      extraGap: 8
-    });
-    (d.address || []).forEach(line => {
-      if (line) lines.push({
-        text: line.toUpperCase(),
-        size: 13,
-        weight: 500
+    if (d.companyName)
+      lines.push({ text: d.companyName.toUpperCase(), size: 22, weight: 700 });
+
+    if (d.ssmNoNew)
+      lines.push({
+        text: d.ssmNoNew.toUpperCase(),
+        size: 14,
+        weight: 600,
+        extraGap: 8
       });
-    });
-    if (d.phone) lines.push({
-      text: d.phone,
-      size: 13,
-      weight: 500,
-      extraGap: 8
-    });
-    if (d.email) lines.push({
-      text: d.email.toLowerCase(),
-      size: 13,
-      weight: 500
+
+    d.address.forEach(a => {
+      if (a.trim())
+        lines.push({ text: a.toUpperCase(), size: 13, weight: 500 });
     });
 
-    const totalHeight = lines.length * 20 + lines.reduce((acc, l) => acc + (l.extraGap || 0), 0);
-    const startY = (260 - totalHeight) / 2 + 20;
+    if (d.phone)
+      lines.push({
+        text: d.phone,
+        size: 13,
+        weight: 500,
+        extraGap: 8
+      });
 
-    let y = startY;
-    const svgLines = lines.map(l => {
-      const out = `<text x="${cx}" y="${y}" font-size="${l.size}" fill="${tc}" font-family="${ff}" font-weight="${l.weight}" text-anchor="middle">${l.text}</text>`;
-      y += 20 + (l.extraGap || 0);
-      return out;
-    }).join('');
+    if (d.email)
+      lines.push({ text: d.email.toLowerCase(), size: 13, weight: 500 });
+
+    let y = 40;
+    const textSVG = lines
+      .map(l => {
+        const out = `<text x="${cx}" y="${y}" font-size="${l.size}"
+          fill="${tc}" font-family="${ff}" font-weight="${l.weight}"
+          text-anchor="middle">${l.text}</text>`;
+        y += 20 + (l.extraGap || 0);
+        return out;
+      })
+      .join('');
 
     return `
-      <svg width="320" height="260" viewBox="0 0 360 260" role="img" aria-label="Info stamp">
-        <rect x="8" y="8" width="344" height="244" stroke="${tc}" stroke-width="3" fill="none" rx="4" />
-        ${svgLines}
-      </svg>
-    `;
+      <svg width="320" height="260" viewBox="0 0 360 260">
+        <rect x="8" y="8" width="344" height="244"
+          stroke="${tc}" stroke-width="3" fill="none" rx="4"/>
+        ${textSVG}
+      </svg>`;
   }
 
+  /* =========================
+     BUILD + RENDER
+  ========================== */
+
   function buildSVG(d) {
+    const tc = getTextColor(d.color);
+    const ff =
+      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto";
+
+    if (d.template === 'box') return boxStamp(d, tc, ff);
+    if (d.template === 'info') return infoStamp(d, tc, ff);
+    return roundStamp(d, tc, ff);
+  }
+
+  function renderPreview() {
+    const d = readForm();
+    previewHost.innerHTML = `
+      <div style="position:relative;padding:16px;background:#F7F9FA;border-radius:8px">
+        ${buildSVG(d)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;
+          justify-content:center;font-size:48px;font-weight:900;
+          color:rgba(0,0,0,.15);transform:rotate(-22deg)">PREVIEW</div>
+      </div>`;
+  }
+
+  /* =========================
+     EVENTS
+  ========================== */
+
+  form.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', renderPreview);
+    el.addEventListener('change', renderPreview);
+  });
+
+  form.querySelectorAll('button[data-color]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      form
+        .querySelectorAll('button[data-color]')
+        .forEach(b => b.setAttribute('data-active', '0'));
+      btn.setAttribute('data-active', '1');
+      renderPreview();
+    });
+  });
+
+  /* =========================
+     INIT
+  ========================== */
+
+  renderPreview();
+    function buildSVG(d) {
     const tc = getTextColor(d.color || 'black');
     const ff = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     if (d.template === 'box') return boxStamp(d, tc, ff);
@@ -474,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadingOverlay.innerHTML = `
       <div style="font-size: 3rem;">💳</div>
       <div><strong>Redirecting to Secure Payment...</strong></div>
-      <div style="font-size: 0.9rem; color: #ccc;">Your stamp data has been saved securely</div>
+      <div style="font-size: 0.9rem; color: #ccc;">Your stamp data has been saved</div>
       <div style="font-size: 0.8rem; color: #999;">Order: ${orderRef}</div>
     `;
     document.body.appendChild(loadingOverlay);
