@@ -872,6 +872,12 @@ function generateStampImage(stampData) {
       
       img.src = url;
     });
+    
+  } catch (error) {
+    logDebug('❌ Error generating stamp image', error);
+    return null;
+  }
+}
 
 /**
  * Updated downloadStampImage function to work with Promise
@@ -1205,5 +1211,3 @@ function downloadStampImage(stampData) {
   </script>
 </body>
 </html>
-
-
