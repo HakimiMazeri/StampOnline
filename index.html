@@ -67,65 +67,62 @@
             </select>
           </div>
 
+          <!-- Company Name - ALL TEMPLATES -->
+          <div>
+            <label class="field-label">Company Name</label>
+            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" placeholder="Enter company name" />
+          </div>
+
+          <!-- SSM Numbers - ALL TEMPLATES -->
+          <div>
+            <label class="field-label">Company No. (New)</label>
+            <input class="input" name="ssmNoNew" value="202401234567" placeholder="e.g. 202401234567" />
+          </div>
+
+          <!-- Old SSM - Only for ROUND template -->
           <div class="template-fields" data-for="round">
-            <label class="field-label">Company Name</label>
-            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
-
-            <label class="field-label">Company No. (New)</label>
-            <input class="input" name="ssmNoNew" value="202401234567" />
-
             <label class="field-label">Company No. (Old)</label>
-            <input class="input" name="ssmNoOld" value="123456-A" />
+            <input class="input" name="ssmNoOld" value="123456-A" placeholder="e.g. 123456-A (optional)" />
           </div>
 
-          <div class="template-fields" data-for="box">
-            <label class="field-label">Company Name</label>
-            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
-
-            <label class="field-label">Company No. (New)</label>
-            <input class="input" name="ssmNoNew" value="202401234567" />
-            <input class="input" name="ssmNoOld" value="123456-A" style="display:none;" />
-
-            <label class="field-label">Address</label>
+          <!-- Address Fields - For BOX and INFO templates -->
+          <div class="template-fields" data-for="box,info">
+            <label class="field-label">Address Line 1</label>
             <input class="input" name="address1" value="No. 88, Jalan Mega 1" placeholder="Address Line 1" />
-            <input class="input" name="address2" value="Taman Industri Mega" placeholder="Address Line 2" />
-            <input class="input" name="address3" value="43000 Kajang, Selangor" placeholder="Address Line 3" />
+            
+            <label class="field-label">Address Line 2</label>
+            <input class="input" name="address2" value="Taman Industri Mega" placeholder="Address Line 2 (optional)" />
+            
+            <label class="field-label">Address Line 3</label>
+            <input class="input" name="address3" value="43000 Kajang, Selangor" placeholder="City, State, Postcode" />
           </div>
 
+          <!-- Phone and Email - Only for INFO template -->
           <div class="template-fields" data-for="info">
-            <label class="field-label">Company Name</label>
-            <input class="input" name="companyName" value="MEGAH HOLDINGS SDN BHD" />
-
-            <label class="field-label">Company No. (New)</label>
-            <input class="input" name="ssmNoNew" value="202401234567" />
-            <input class="input" name="ssmNoOld" value="123456-A" style="display:none;" />
-
-            <label class="field-label">Address</label>
-            <input class="input" name="address1" value="No. 88, Jalan Mega 1" />
-            <input class="input" name="address2" value="Taman Industri Mega" />
-            <input class="input" name="address3" value="43000 Kajang, Selangor" />
-
             <label class="field-label">Telephone</label>
-            <input class="input" name="phone" value="+603-8899 1234" />
+            <input class="input" name="phone" value="+603-8899 1234" placeholder="e.g. +603-1234 5678 (optional)" />
 
             <label class="field-label">Email (shown on stamp)</label>
-            <input class="input" name="email" value="info@megahholdings.com" />
+            <input class="input" name="email" value="info@megahholdings.com" placeholder="e.g. info@company.com (optional)" />
           </div>
 
+          <!-- Billing Email - ALL TEMPLATES -->
           <div>
             <label class="field-label">Billing Email (required for download)</label>
-            <input class="input" name="billingEmail" placeholder="billing@email.com" required />
+            <input class="input" name="billingEmail" placeholder="your.email@example.com" required />
           </div>
 
+          <!-- Stamp Color - ALL TEMPLATES -->
           <div>
             <label class="field-label">Stamp Colour</label>
             <div style="display:flex;gap:8px;">
-              <button type="button" data-color="black" data-active="1" class="btn btn-outline" style="flex:1;">Black</button>
+              <button type="button" data-color="black" data-active="1" class="btn btn-primary" style="flex:1;">Black</button>
               <button type="button" data-color="red" class="btn btn-outline" style="flex:1;">Red</button>
               <button type="button" data-color="blue" class="btn btn-outline" style="flex:1;">Blue</button>
             </div>
           </div>
 
+          <!-- Download Buttons -->
           <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
             <button type="button" id="btn-download-free" class="btn btn-outline" style="flex:1;min-width:140px;">
               Download Free
