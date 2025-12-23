@@ -856,34 +856,6 @@ function generateStampImage(stampData) {
       img.onload = function() {
         // Draw the stamp at HD resolution
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Add subtle "PAID" watermark (very light for HD version)
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.03)';
-        ctx.font = `bold ${canvas.width * 0.15}px ${fontFamily}`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.save();
-        ctx.translate(canvas.width/2, canvas.height/2);
-        ctx.rotate(-Math.PI / 6);
-        ctx.fillText('PAID', 0, 0);
-        ctx.restore();
-        
-        // Add tiny branding (bottom right)
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-        ctx.font = `${canvas.width * 0.02}px ${fontFamily}`;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText('WebStamp.my | Premium HD', canvas.width - 20, canvas.height - 20);
-        
-        // Add order reference (bottom left)
-        ctx.textAlign = 'left';
-        ctx.fillText(`Order: ${stampData.orderRef || ''}`, 20, canvas.height - 20);
-        
-        URL.revokeObjectURL(url);
-        
-        const dataUrl = canvas.toDataURL('image/png');
-        logDebug('✅ HD stamp image generated successfully');
-        resolve(dataUrl);
       };
       
       img.onerror = function() {
@@ -1233,3 +1205,4 @@ function downloadStampImage(stampData) {
   </script>
 </body>
 </html>
+
